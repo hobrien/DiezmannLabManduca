@@ -1,4 +1,5 @@
 import os
+import re
 
 # read config info into this namespace
 include: "config.py"
@@ -39,13 +40,28 @@ rule index_ref:
     shell:
         "(hisat2-build -p 8 {params.infiles} {params.outprefix}) 2> {log}"
 
-rule extract_splice_sites:
+rule gff_to_gtf:
     input:
         [os.path.join('Reference', os.path.basename(i).replace('.gz', '')) for i in (lookup['candida_gff'], lookup['manduca_gff'])]
     output:
+        os.path.join('Reference', os.path.basename(lookup['candida_gff']).replace('.gz', '').replace('gff3', 'gtf')),
+        os.path.join('Reference', os.path.basename(lookup['manduca_gff']).replace('.gz', '').replace('gff', 'gtf'))
+    params:
+        num_cores = 1
+    log:
+        "Logs/Hisat/gff_to_gtf.txt"
+    run:
+        shell("(gffread {input[0]} -T -o {output[0]} ) 2> {log}")
+        shell("(gffread {input[1]} -T -o {output[1]} ) 2> {log}")
+        
+rule extract_splice_sites:
+    input:
+        os.path.join('Reference', os.path.basename(lookup['candida_gff']).replace('.gz', '').replace('gff3', 'gtf')),
+        os.path.join('Reference', os.path.basename(lookup['manduca_gff']).replace('.gz', '').replace('gff', 'gtf'))
+    output:
         "Reference/splicesites.txt"
     params:
-        num_cores = 8
+        num_cores = 1
     log:
         "Logs/Hisat/hisat_extract_splice.txt"
     shell:
