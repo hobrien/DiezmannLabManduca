@@ -6,9 +6,9 @@ lookup = {
         ('ftp://ftp.ensemblgenomes.org/pub/fungi/release-37/gff3/fungi_ascomycota2_collection/candida_albicans_sc5314/'
          'Candida_albicans_sc5314.Cand_albi_SC5314_V4.37.gff3.gz'),
     ('manduca_genome'):
-        ('ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/262/585/GCA_000262585.1_Msex_1.0/'
-         'GCA_000262585.1_Msex_1.0_genomic.fna.gz'),
+        ('https://i5k.nal.usda.gov/sites/default/files/data/Arthropoda/mansex-%28Manduca_sexta%29/Current%20Genome%20Assembly/1.Genome%20Assembly/Manduca_sexta_v1.0/Scaffolds/'
+        'ms_scaffolds.fa.gz'),
     ('manduca_gff'):
-        ('ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/262/585/GCA_000262585.1_Msex_1.0/'
-         'GCA_000262585.1_Msex_1.0_genomic.gff.gz')
+        ('https://i5k.nal.usda.gov/sites/default/files/data/Arthropoda/mansex-%28Manduca_sexta%29/Current%20Genome%20Assembly/2.Official%20or%20Primary%20Gene%20Set/OGS2.0/'
+        'ms_ogs.gff')
 }    

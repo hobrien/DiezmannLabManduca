@@ -16,11 +16,14 @@ rule download_ref:
     run:
         rev_lookup = dict((os.path.basename(i), i) for i in lookup.values())
         for o in output:
-            ro = rev_lookup[os.path.basename('.'.join([o, 'gz']))]
-            print("wget -P Reference {ro}")
-            shell("wget -P Reference {ro}")
-            ro = os.path.basename(ro)
-            shell("gunzip Reference/{ro}")
+            if os.path.basename(o) == 'ms_ogs.gff':
+                ro = rev_lookup[os.path.basename(o)]
+                shell("wget -P Reference {ro}")
+            else:    
+                ro = rev_lookup[os.path.basename('.'.join([o, 'gz']))]
+                shell("wget -P Reference {ro}")
+                ro = os.path.basename(ro)
+                shell("gunzip Reference/{ro}")
 
 rule index_ref:
     input:
