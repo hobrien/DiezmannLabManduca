@@ -8,7 +8,8 @@ include: "config.py"
 
 rule all:
     input:
-        expand("Mappings/{sample}.bam", sample=samples)
+        expand("Mappings/{sample}.stats.txt", sample=samples),
+        expand("Mappings/{sample}.counts.txt", sample=samples)       
         
 rule download_ref:
     output: 
@@ -54,11 +55,21 @@ rule gff_to_gtf:
     run:
         shell("(gffread {input[0]} -T -o {output[0]} ) 2> {log}")
         shell("(gffread {input[1]} -T -o {output[1]} ) 2> {log}")
-        
-rule extract_splice_sites:
+
+rule combine_gtf:        
     input:
         os.path.join('Reference', os.path.basename(lookup['candida_gff']).replace('.gz', '').replace('gff3', 'gtf')),
         os.path.join('Reference', os.path.basename(lookup['manduca_gff']).replace('.gz', '').replace('gff', 'gtf'))
+    output:
+        "Reference/combined.gtf"
+    params:
+        num_cores = 1
+    shell:
+        "cat {input} > {output}"
+
+rule extract_splice_sites:
+    input:
+        rules.combined_gtf.output
     output:
         "Reference/splicesites.txt"
     params:
@@ -67,6 +78,7 @@ rule extract_splice_sites:
         "Logs/Hisat/hisat_extract_splice.txt"
     shell:
         "(cat {input} | hisat2_extract_splice_sites.py '-' > {output} ) 2> {log}"
+
         
 rule hisat:
     input:
@@ -85,3 +97,45 @@ rule hisat:
         "(hisat2 --fr --threads 8 -x {params.index_pref} --known-splicesite-infile "
         "{input.splice_sites} -1 {input.forward} -2 {input.reverse} | samtools view "
         "-S -bo {output} -) 2> {log}"
+
+rule sort_bam:
+    input:
+        rules.hisat.output
+    output:
+        "Mappings/{sample}.sort.bam
+    params:
+         num_cores = 1
+    shell:
+        "~/bin/samtools sort -o {output} {input}"
+
+rule samtools_index:
+    input:
+        rules.sort_bam.output
+    output:
+        "Mappings/{sample}.sort.bam.bai
+    params:
+         num_cores = 1
+    shell:
+        "~/bin/samtools index {input}"
+
+rule bam_stats:
+    input:
+        rules.sort_bam.output,
+        rules.samtools_index.output
+    output:
+        "Mappings/{sample}.stats.txt
+    params:
+         num_cores = 1
+    shell:
+        "bam_stat.py -i {input} > {output}"
+        
+rule count_reads:
+    input:
+        bam=rules.sort_bam.output,
+        gtf=rules.combined_gtf.output
+    output:
+        "Mappings/{sample}.counts.txt"
+    params:
+         num_cores = 1
+    shell:
+        "htseq-count -f bam -s reverse -t exon -i gene_id -m intersection-strict {input.bam} {input.gtf} > {output}"
