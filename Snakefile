@@ -1,3 +1,5 @@
+#snakemake --cluster "qsub -pe smp {params.num_cores}" -j 20
+
 import os
 import re
 
@@ -6,8 +8,7 @@ include: "config.py"
 
 rule all:
     input:
-        [os.path.join("Reference", '.'.join(["combined", str(i+1), "ht2"])) for i in range(8)],
-        "Reference/splicesites.txt"
+        expand("Mappings/{sample}.bam", sample=samples)
         
 rule download_ref:
     output: 
@@ -66,3 +67,21 @@ rule extract_splice_sites:
         "Logs/Hisat/hisat_extract_splice.txt"
     shell:
         "(cat {input} | hisat2_extract_splice_sites.py '-' > {output} ) 2> {log}"
+        
+rule hisat:
+    input:
+        forward = "raw_data/{sample}_1.fq.gz",
+        reverse = "raw_data/{sample}_2.fq.gz",
+        splice_sites = rules.extract_splice_sites.output
+    output:
+        "Mappings/{sample}.bam"
+    params:
+        num_cores = 8,
+        index_pref = "Reference/combined",
+        index = [os.path.join("Reference", '.'.join(["combined", str(i+1), "ht2"])) for i in range(8)]
+    log:
+        "Logs/Hisat/hisat_map.txt"
+    shell:
+        "(hisat2 --fr --threads 8 -x {params.index_pref} --known-splicesite-infile "
+        "{input.splice_sites} -1 {input.forward} -2 {input.reverse} | samtools view "
+        "-S -bo {output} -) 2> {log}"
