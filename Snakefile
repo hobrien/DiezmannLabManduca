@@ -65,11 +65,11 @@ rule combine_gtf:
     params:
         num_cores = 1
     shell:
-        "cat {input} > {output}"
+        "cat {input} | grep gene_id > {output}"
 
 rule extract_splice_sites:
     input:
-        rules.combined_gtf.output
+        rules.combine_gtf.output
     output:
         "Reference/splicesites.txt"
     params:
@@ -102,28 +102,28 @@ rule sort_bam:
     input:
         rules.hisat.output
     output:
-        "Mappings/{sample}.sort.bam
+        "Mappings/{sample}.sort.bam"
     params:
          num_cores = 1
     shell:
-        "~/bin/samtools sort -o {output} {input}"
+        "samtools sort -o {output} {input}"
 
 rule samtools_index:
     input:
         rules.sort_bam.output
     output:
-        "Mappings/{sample}.sort.bam.bai
+        "Mappings/{sample}.sort.bam.bai"
     params:
          num_cores = 1
     shell:
-        "~/bin/samtools index {input}"
+        "samtools index {input}"
 
 rule bam_stats:
     input:
         rules.sort_bam.output,
         rules.samtools_index.output
     output:
-        "Mappings/{sample}.stats.txt
+        "Mappings/{sample}.stats.txt"
     params:
          num_cores = 1
     shell:
@@ -132,7 +132,7 @@ rule bam_stats:
 rule count_reads:
     input:
         bam=rules.sort_bam.output,
-        gtf=rules.combined_gtf.output
+        gtf=rules.combine_gtf.output
     output:
         "Mappings/{sample}.counts.txt"
     params:
