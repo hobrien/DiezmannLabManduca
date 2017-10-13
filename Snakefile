@@ -138,4 +138,4 @@ rule count_reads:
     params:
          num_cores = 1
     shell:
-        "htseq-count -f bam -s reverse -t exon -i gene_id -m intersection-strict {input.bam} {input.gtf} > {output}"
+        "htseq-count -f bam -s no -t exon -i gene_id -m intersection-strict {input.bam} {input.gtf} > {output}"
