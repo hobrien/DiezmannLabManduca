@@ -42,6 +42,8 @@ Python/.ipynb_checkpoints/*
 # Results folders
 Results/*
 FastQC/*
+Mappings/*
+Tables/*
 
 # Genome Scale files
 Data/HRC.r1-1.GRCh37.wgs.mac5.sites.tab
