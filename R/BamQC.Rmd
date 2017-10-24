@@ -1,0 +1,114 @@
+---
+title: "Data QC"
+author: "Heath O'Brien"
+output:
+  tufte::tufte_handout: default
+  #tufte::tufte_html: default
+---
+<!-- see http://rstudio.github.io/tufte/ for info about tufte -->
+<!-- type Rscript -e "library(rmarkdown); render('BamQC.rmd')" to knit to html on the server -->
+```{r setup, include=FALSE}
+knitr::opts_knit$set(echo = FALSE)
+library(tidyverse)
+library(stringr)
+library(gridExtra)
+library(tufte)
+rm(list=ls())
+source("FormatGGplot.R")
+#LibraryInfo <- read_tsv("Data/SampleInfo.txt", 
+#                        col_types = cols(.default = col_character())
+#                       )
+RSeQCstats <- read_tsv("../Tables/read_numbers.txt", col_types = cols(sample = 'c'))
+ReadNumbers <- select(RSeQCstats, sample, Unique)
+RSeQCstats <- RSeQCstats %>% mutate(sample = str_extract(sample, "^[^-]+")) %>% group_by(sample) %>% summarise_each("sum")
+
+```
+
+# RSeQC
+## Mapping Stats
+
+`r margin_note("- Numbers of READS, which is 2x the number of sequenced fragments ")`
+``` {r echo = FALSE}
+#bam_stat.py
+#RSeQCstats <- dplyr::select(LibraryInfo, sample=Sample, ReadLength) %>% full_join(RSeQCstats, by='sample')
+knitr::kable(
+  bind_cols(RSeQCstats[,1], as.data.frame(sapply(RSeQCstats[,2:4], function(x) formatC(as.numeric(x), format='d', big.mark=','))))
+)
+```
+
+
+## Distribution of Reads Among Features (proportion of tags mapping to different feature classes)
+`r margin_note("- Intergenic only considers sequence within 10 kb upstream of TSS and downstream of TES")`
+`r margin_note("- Looks like the GFF does not distinguish between CDS and UTR")`
+
+
+``` {r echo = FALSE}
+#read_distribution.py
+RSeQCdistribution <- read_tsv("../Tables/read_distribution.txt", col_types = cols(sample = 'c'))
+#RSeQCdistribution <- dplyr::select(LibraryInfo, sample=Sample, ReadLength) #%>% full_join(RSeQCdistribution, by='sample')
+RSeQCdistribution <- dplyr::select(RSeQCstats, sample, Unique) %>% 
+  full_join(RSeQCdistribution, by='sample') %>%
+  mutate(tags_per_read=`Total Tags`/Unique) %>%
+  dplyr::select(sample, tags_per_read, CDS, UTR, Intron, Intergenic)
+knitr::kable(
+  RSeQCdistribution
+)
+
+
+```
+
+## Strand
+
+`r margin_note("- Data consistent with unstranded experiment")`
+
+```{r echo = FALSE}
+RSeQCexpt <- read_tsv("../Tables/read_strand.txt", col_types = cols(sample = 'c'))
+#RSeQCexpt <- dplyr::select(LibraryInfo, sample=Sample, ReadLength) %>% #full_join(RSeQCexpt, by='sample')
+
+knitr::kable(
+    RSeQCexpt
+)
+
+```
+
+## Insert Size Distribution
+
+`r margin_note("- Sharp peaks indicate that most fragments are shorter than the read length")`
+
+
+
+```{r echo = FALSE, dev.args = list(bg = 'transparent')}
+RSeQCdistance <- read_tsv("../Tables/read_distance.txt", col_types = cols(sample = 'c'))
+#RSeQCdistance <- dplyr::select(LibraryInfo, sample=Sample, ReadLength) %>% full_join(RSeQCdistance, by='sample')
+
+ggplot(RSeQCdistance, aes(x=size, y=count, group=sample)) +
+  geom_line() +
+  ylab('reads') +
+  xlab('inner distance') +
+  scale_colour_brewer(type = "qual", palette = 6) +
+  main_theme() +
+  theme(legend.position=c(.8,.8))
+
+```
+
+## Splice Junction Saturation
+
+`r margin_note("- Lots of unannotated genes")`
+
+```{r warning=FALSE, echo = FALSE, dev.args = list(bg = 'transparent')}
+RSeQCsat <- read_tsv("../Tables/junction_sat.txt", col_types = cols(sample = 'c'))
+RSeQCsat <- RSeQCsat %>% mutate(BrainBankID=str_extract(sample, "^[^-]+")) %>% #full_join(dplyr::select(LibraryInfo, BrainBankID=Sample, ReadLength), by='BrainBankID') %>% 
+  full_join(ReadNumbers) %>%
+  dplyr::select(-BrainBankID)
+
+ggplot(RSeQCsat, aes(y=junctions, x=Unique*percent_reads/100, group=sample)) +
+  geom_point() +
+  #xlim(c(0,500)) +
+  #scale_y_log10() +
+  scale_colour_brewer(type = "qual", palette = 6) +
+  main_theme() +
+  theme(legend.position=c(.9,.9)) +
+  facet_wrap(~ Category) +
+  theme(axis.text.x=element_text(angle=-90)) +
+  xlab("Number of Reads")
+```
