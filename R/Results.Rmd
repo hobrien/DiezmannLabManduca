@@ -1,0 +1,74 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(devtools)
+library(stringr)
+load_all(pkg = "SARTools")
+LibraryInfo=tibble(sample=c("A4", "A5", "A6", "B5", "B6", "C5", "C6", "D4", "E4"),
+                       Files=c("A4.counts.txt", "A5.counts.txt", "A6.counts.txt", "B5.counts.txt", "B6.counts.txt", "C5.counts.txt", "C6.counts.txt", "D4.counts.txt", "E4.counts.txt"))
+featuresToRemove <- c("alignment_not_unique",        # names of the features to be removed
+                      "ambiguous", "no_feature",     # (specific HTSeq-count information and rRNA for example)
+                      "not_aligned", "too_low_aQual")
+count_matrix <- loadCountData(labels=LibraryInfo$sample, files=paste0("../Mappings/", LibraryInfo$Files), featuresToRemove=featuresToRemove)
+counts <- as.tibble(count_matrix)
+counts$total=rowSums(counts)
+counts$Id <- rownames(count_matrix)
+counts <- select(counts, Id, A4, D4, E4, A5, B5, C5, A6, B6, B6, total)
+
+counts %>% mutate(Organism=ifelse(str_detect(Id, 'gene'), 'Candida', 'Manduca'),
+       log_total=cut(total, breaks=10^(0:5))) %>%
+  ggplot(aes(log_total))+geom_bar()+facet_grid(Organism ~.)
+filter(counts, str_detect(Id, 'gene') & total > 0)
+```
+
+```{r}
+folder="../Mappings"
+cov <- data.frame()
+for (file in dir(folder, '*cov.txt')) {
+  print(file)
+  cov <- read_delim(paste(folder, file, sep='/'), "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
+    mutate(sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
+    rbind(cov)
+}
+
+cov <- mutate(cov, Organism=ifelse(str_detect(X1, '^gi'), 'Manduca', 'Candia'))
+
+for (file in dir(folder, '*stats.txt')) {
+  print(file)
+  temp <- read_csv(paste(folder, file, sep='/'))
+  colnames(temp)=c("x1")
+  cov <-filter(temp, str_detect(x1, "Unmapped reads")) %>% separate(x1, into=c("Organism", "X2", "X3")) %>% 
+    mutate(X1=NA, X4=NA, sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
+    rbind(cov) %>%
+    mutate(X2=as.integer(X2), X3=as.integer(X3), X4=as.integer(X4))
+}
+
+group_by(cov, Organism, sample) %>% 
+  summarise(total_reads=sum(as.integer(X3))) %>% 
+  ggplot(aes(x=sample, y=total_reads)) +
+    geom_bar(stat='identity') +
+    facet_grid(Organism~.) 
+
+group_by(cov, Organism, sample) %>% 
+  summarise(total_reads=sum(as.integer(X3))) %>% 
+  ggplot(aes(x=sample, y=total_reads)) +
+    geom_bar(stat='identity') +
+    facet_grid(Organism~.) +
+    scale_y_log10()
+
+group_by(cov, Organism, sample) %>% 
+  summarise(total_reads=sum(as.integer(X3))) %>% 
+  ggplot(aes(x=sample, y=total_reads)) +
+    geom_bar(stat='identity') +
+    facet_grid(Organism~.)
+
+
+```
