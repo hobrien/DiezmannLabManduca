@@ -1,0 +1,10 @@
+SampleID	condition
+A4	Uninfected
+D4	Uninfected
+E4	Uninfected
+A5	WT
+B5	WT
+C5	WT
+A6	hog1
+B6	hog1
+C6	hog1
