@@ -21,10 +21,10 @@ option_list <- list(
               help="Cofactors to interact with varInt", metavar = 'interact'),
   make_option(c("-p", "--pvalue"), type="numeric", default=0.1, 
               help="corrected pvalue cutoff", metavar="pvalue"),
-  make_option(c("-c", "--conditions"), type="character", default=".conditions.txt", 
+  make_option(c("-c", "--conditions"), type="character", default="conditions.txt", 
               help="Cofactors (either Sex or PCW)"),
-  make_option(c("-e", "--exclude"), type="character", default=NULL, 
-              help="File with list of genes to exclude", metavar="excluded"),
+  make_option(c("-e", "--exclude"), type="character", default="../Reference/Candida_genes.txt", 
+              help="File with list of genes to exclude"),
   make_option(c("-f", "--feature"), type="character", default="genes", 
               help="Type of feature to Analyse (genes, junctions, transcripts)"),
   make_option(c("-k", "--kallisto"), action='store_true', type="logical", default=FALSE, 
@@ -56,7 +56,9 @@ targetFile <- opt$options$conditions
 featuresToRemove <- c("alignment_not_unique",        # names of the features to be removed
                       "ambiguous", "no_feature",     # (specific HTSeq-count information and rRNA for example)
                       "not_aligned", "too_low_aQual")# NULL if no feature to remove
-
+if (! is.null(opt$options$exclude)) {
+  featuresToRemove <- c(featuresToRemove, read_tsv(opt$options$exclude, col_names = FALSE)$X1)
+}
 
 condRef <- opt$options$ref                                     # reference biological condition
 
@@ -64,12 +66,6 @@ pAdjustMethod <- "BH"                                # p-value adjustment method
 
 colors <- c("dodgerblue","firebrick1",               # vector of colors of each biological condition on the plots
             "MediumVioletRed","SpringGreen")
-
-
-# EdgeR parameters
-cpmCutoff <- 1                                       # counts-per-million cut-off to filter low counts
-gene.selection <- "pairwise"                         # selection of the features in MDSPlot
-normalizationMethod <- "TMM"                         # normalization method: "TMM" (default), "RLE" (DESeq) or "upperquartile"
 
 # DESeq parameters
 fitType <- "parametric"                              # mean-variance relationship: "parametric" (default) or "local"
