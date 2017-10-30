@@ -1,5 +1,7 @@
 #snakemake --cluster "qsub -pe smp {params.num_cores}" -j 20
 
+# next step is to add transcript sequences to tables
+
 import os
 import re
 
@@ -9,7 +11,13 @@ include: "config.py"
 rule all:
     input:
         "R/BamQC.pdf",
-        expand("Mappings/{sample}.counts.txt", sample=samples)       
+        "Results/ManducaInfection_report.html",
+        "Results/tables/Uninfectedvshog1.down.txt",
+        "Results/tables/Uninfectedvshog1.up.txt",
+        "Results/tables/WTvshog1.down.txt",
+        "Results/tables/WTvshog1.up.txt",
+        "Results/tables/WTvsUninfected.down.txt",
+        "Results/tables/WTvsUninfected.up.txt"
         
 rule download_ref:
     output: 
@@ -285,4 +293,28 @@ rule count_reads:
          num_cores = 1
     shell:
         "htseq-count -f bam -s no -t exon -i gene_id -m intersection-strict {input.bam} {input.gtf} > {output}"
-        
+
+rule deseq:
+    input:
+        reads = expand("Mappings/{sample}.counts.txt", sample=samples),
+        conditions = "conditions.txt",
+        excluded = rules.exclude_candida.output
+    output:
+        "Results/ManducaInfection_report.html",
+        "Results/tables/Uninfectedvshog1.down.txt",
+        "Results/tables/Uninfectedvshog1.up.txt",
+        "Results/tables/WTvshog1.down.txt",
+        "Results/tables/WTvshog1.up.txt",
+        "Results/tables/WTvsUninfected.down.txt",
+        "Results/tables/WTvsUninfected.up.txt"
+    params:
+        varInt = "condition",
+        ref = "Uninfected",
+        pvalue - 0.1,
+        name = "ManducaInfection",
+        output = "Results"
+        num_cores = 1
+    shell:        
+        "Rscript R/RunDE.R --conditions {input.conditions} --excluded {input.excluded}"
+        "--varInt = {params.varInt} --ref {params.ref} --pvalue {params.pvalue}"
+        "--name {params.name} --output {params.output} {input.reads}"
