@@ -11,13 +11,9 @@ include: "config.py"
 rule all:
     input:
         "R/BamQC.pdf",
+        "R/Results.pdf",
         "Results/ManducaInfection_report.html",
-        "Results/tables/Uninfectedvshog1.down.txt",
-        "Results/tables/Uninfectedvshog1.up.txt",
-        "Results/tables/WTvshog1.down.txt",
-        "Results/tables/WTvshog1.up.txt",
-        "Results/tables/WTvsUninfected.down.txt",
-        "Results/tables/WTvsUninfected.up.txt"
+        "Results/sequences/TransitiveDiffs.fa"
         
 rule download_ref:
     output: 
@@ -165,7 +161,7 @@ rule exclude_candida:
     params:
          num_cores = 1
     shell:
-        "grep gene {input} | perl -pe 's/>//' > {output}"
+        "grep transcript {input} | perl -pe 's/>//' > {output}"
     
 rule bam_stats:
     input:
@@ -292,7 +288,7 @@ rule count_reads:
     params:
          num_cores = 1
     shell:
-        "htseq-count -f bam -s no -t exon -i gene_id -m intersection-strict {input.bam} {input.gtf} > {output}"
+        "htseq-count -f bam -s no -t exon -i transcript_id -m intersection-strict {input.bam} {input.gtf} > {output}"
 
 rule deseq:
     input:
@@ -301,20 +297,37 @@ rule deseq:
         excluded = rules.exclude_candida.output
     output:
         "Results/ManducaInfection_report.html",
-        "Results/tables/Uninfectedvshog1.down.txt",
-        "Results/tables/Uninfectedvshog1.up.txt",
-        "Results/tables/WTvshog1.down.txt",
-        "Results/tables/WTvshog1.up.txt",
-        "Results/tables/WTvsUninfected.down.txt",
-        "Results/tables/WTvsUninfected.up.txt"
+         expand("Results/tables/{comparison}.{direction}.txt", comparison=comparisons, direction=['up', 'down'])
     params:
         varInt = "condition",
         ref = "Uninfected",
-        pvalue - 0.1,
+        pvalue = 0.1,
         name = "ManducaInfection",
-        output = "Results"
+        output = "Results",
         num_cores = 1
     shell:        
         "Rscript R/RunDE.R --conditions {input.conditions} --excluded {input.excluded}"
-        "--varInt = {params.varInt} --ref {params.ref} --pvalue {params.pvalue}"
-        "--name {params.name} --output {params.output} {input.reads}"
+        " --varInt {params.varInt} --ref {params.ref} --pvalue {params.pvalue}"
+        " --name {params.name} --output {params.output} {input.reads}"
+        
+rule de_report:
+    input:
+        expand("Results/tables/{comparison}.{direction}.txt", comparison=comparisons, direction=['up', 'down'])
+    output:
+        "R/Results.pdf",
+        "Results/tables/TransitiveDiffs.txt"
+    params:
+         num_cores = 1
+    shell:
+        "Rscript -e 'library(rmarkdown); render(\"R/Results.Rmd\")'"
+
+rule get_seqs:
+    input:
+        results="Results/tables/TransitiveDiffs.txt",
+        seqs=rules.transcript_seqs.output
+    output:
+        "Results/sequences/TransitiveDiffs.fa"
+    params:
+        num_cores = 1
+    shell:        
+        "~/anaconda2/envs/py35/bin/seqtk subseq {input.seqs} <(cut -f 1 {input.results}) > {output}"

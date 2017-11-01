@@ -1,39 +1,38 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "RNAseq Results"
+author: "Heath O'Brien"
+output:
+  tufte::tufte_handout: default
+  #tufte::tufte_html: default
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
-```{r}
+```{r setup, include=FALSE}
 library(tidyverse)
 library(devtools)
 library(stringr)
-load_all(pkg = "SARTools")
-LibraryInfo=tibble(sample=c("A4", "A5", "A6", "B5", "B6", "C5", "C6", "D4", "E4"),
-                       Files=c("A4.counts.txt", "A5.counts.txt", "A6.counts.txt", "B5.counts.txt", "B6.counts.txt", "C5.counts.txt", "C6.counts.txt", "D4.counts.txt", "E4.counts.txt"))
-featuresToRemove <- c("alignment_not_unique",        # names of the features to be removed
-                      "ambiguous", "no_feature",     # (specific HTSeq-count information and rRNA for example)
-                      "not_aligned", "too_low_aQual")
-count_matrix <- loadCountData(labels=LibraryInfo$sample, files=paste0("../Mappings/", LibraryInfo$Files), featuresToRemove=featuresToRemove)
-counts <- as.tibble(count_matrix)
-counts$total=rowSums(counts)
-counts$Id <- rownames(count_matrix)
-counts <- select(counts, Id, A4, D4, E4, A5, B5, C5, A6, B6, B6, total)
+library(tufte)
+LibraryInfo=read_delim("../conditions.txt", "\t")
 
-counts %>% mutate(Organism=ifelse(str_detect(Id, 'gene'), 'Candida', 'Manduca'),
-       log_total=cut(total, breaks=10^(0:5))) %>%
-  ggplot(aes(log_total))+geom_bar()+facet_grid(Organism ~.)
-filter(counts, str_detect(Id, 'gene') & total > 0)
+plotExpression <- function(row, LibraryInfo, title){
+    dplyr::slice(row, 1) %>%
+    select(one_of(paste('norm', LibraryInfo$SampleID, sep='.'))) %>%
+    gather("SampleID", "Count") %>%
+    mutate(SampleID = str_extract(SampleID, '[^.]+$')) %>%
+    full_join(LibraryInfo) %>%
+    mutate(condition=factor(condition, levels= c('Uninfected', 'WT', 'hog1'))) %>%
+    ggplot(aes(y=Count, x=condition, colour=condition)) +
+    geom_jitter(height = 0, width=.1) +
+    ggtitle(title)
+}
+
+
 ```
 
-```{r}
+## The vast majority of reads map to Manduca contigs
+```{r coverage, echo=FALSE, message=FALSE, warning=FALSE}
 folder="../Mappings"
 cov <- data.frame()
 for (file in dir(folder, '*cov.txt')) {
-  print(file)
   cov <- read_delim(paste(folder, file, sep='/'), "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
     mutate(sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
     rbind(cov)
@@ -42,7 +41,6 @@ for (file in dir(folder, '*cov.txt')) {
 cov <- mutate(cov, Organism=ifelse(str_detect(X1, '^gi'), 'Manduca', 'Candia'))
 
 for (file in dir(folder, '*stats.txt')) {
-  print(file)
   temp <- read_csv(paste(folder, file, sep='/'))
   colnames(temp)=c("x1")
   cov <-filter(temp, str_detect(x1, "Unmapped reads")) %>% separate(x1, into=c("Organism", "X2", "X3")) %>% 
@@ -64,11 +62,43 @@ group_by(cov, Organism, sample) %>%
     facet_grid(Organism~.) +
     scale_y_log10()
 
-group_by(cov, Organism, sample) %>% 
-  summarise(total_reads=sum(as.integer(X3))) %>% 
-  ggplot(aes(x=sample, y=total_reads)) +
-    geom_bar(stat='identity') +
-    facet_grid(Organism~.)
+```
 
+## Summary of all DE genes (FDR<0.1)
+```{r all_DE, echo=FALSE, message=FALSE}
+DE <- mutate(read_delim("../Results/tables/Uninfectedvshog1.down.txt", "\t"), Comparison="Uninfectedvshog1", bias='hog1' ) %>%
+  bind_rows(mutate(read_delim("../Results/tables/Uninfectedvshog1.up.txt", "\t"), Comparison="Uninfectedvshog1", bias='Uninfected' )) %>%
+  bind_rows(mutate(read_delim("../Results/tables/WTvshog1.down.txt", "\t"), Comparison="WTvshog1", bias='hog1' )) %>%
+  bind_rows(mutate(read_delim("../Results/tables/WTvshog1.up.txt", "\t"), Comparison="WTvshog1", bias='WT' )) %>%
+  bind_rows(mutate(read_delim("../Results/tables/WTvsUninfected.down.txt", "\t"), Comparison="WTvsUninfected", bias='Uninfected' )) %>%
+  bind_rows(mutate(read_delim("../Results/tables/WTvsUninfected.up.txt", "\t"), Comparison="WTvsUninfected", bias='WT' ))
 
+knitr::kable(
+  group_by(DE, Comparison, bias) %>% summarise(n=n())
+)
+group_by(DE, Id, bias) %>% 
+  summarise(n=n()) %>% 
+  filter(n>1) %>% 
+  select(Id) %>% 
+  left_join(DE) %>% 
+  select(Id, Comparison, bias, log2FoldChange, padj, everything()) %>% 
+  write_tsv("../Results/tables/TransitiveDiffs.txt")
+```
+
+## Summary of transitive genes (FDR<0.1 in both comparisons involving treatment)
+```{r transitive, echo=FALSE, message=FALSE}
+knitr::kable(
+group_by(DE, Id, bias) %>% summarise(n=n()) %>% filter(n>1) %>% group_by(bias) %>% summarise(n=n())
+)
+```
+
+## Representative plots
+```{r plots, echo=FALSE, message=FALSE}
+filter(DE, Id=='00BCF3E31BBC7ADB91AD7F6DB68F8758') %>% dplyr::slice(1) %>% plotExpression(LibraryInfo, "Uninfected")
+filter(DE, Id=='024B835CE3CEE108742B6C1C46C672FE') %>% dplyr::slice(1) %>% plotExpression(LibraryInfo, "WT")
+filter(DE, Id=='29410F4989B940B760CACD364C892321') %>% dplyr::slice(1) %>% plotExpression(LibraryInfo, "hog1")
+
+filter(DE, Id=='B8F86937044525FE3BF705C4B6B8C3F8') %>% dplyr::slice(1) %>% plotExpression(LibraryInfo, "hi cooks")
+
+filter(DE, Id=='6ADC146B50087543193CB22FCDAA4F44') %>% dplyr::slice(1) %>% plotExpression(LibraryInfo, "lowest p")
 ```
