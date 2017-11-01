@@ -23,7 +23,7 @@ option_list <- list(
               help="corrected pvalue cutoff", metavar="pvalue"),
   make_option(c("-c", "--conditions"), type="character", default="conditions.txt", 
               help="Cofactors (either Sex or PCW)"),
-  make_option(c("-e", "--exclude"), type="character", default="../Reference/Candida_genes.txt", 
+  make_option(c("-e", "--exclude"), type="character", default="Reference/Candida_genes.txt", 
               help="File with list of genes to exclude"),
   make_option(c("-f", "--feature"), type="character", default="genes", 
               help="Type of feature to Analyse (genes, junctions, transcripts)"),
@@ -53,12 +53,6 @@ workDir <- opt$options$output     # working directory for the R session         
 
 targetFile <- opt$options$conditions
 
-featuresToRemove <- c("alignment_not_unique",        # names of the features to be removed
-                      "ambiguous", "no_feature",     # (specific HTSeq-count information and rRNA for example)
-                      "not_aligned", "too_low_aQual")# NULL if no feature to remove
-if (! is.null(opt$options$exclude)) {
-  featuresToRemove <- c(featuresToRemove, read_tsv(opt$options$exclude, col_names = FALSE)$X1)
-}
 
 condRef <- opt$options$ref                                     # reference biological condition
 
@@ -87,6 +81,14 @@ load_all(pkg = "R/SARTools")
 library(tidyverse)
 library(stringr)
 library(RColorBrewer)
+
+featuresToRemove <- c("alignment_not_unique",        # names of the features to be removed
+                      "ambiguous", "no_feature",     # (specific HTSeq-count information and rRNA for example)
+                      "not_aligned", "too_low_aQual")# NULL if no feature to remove
+if (! is.null(opt$options$exclude)) {
+  featuresToRemove <- c(featuresToRemove, read_tsv(opt$options$exclude, col_names = FALSE)$X1)
+}
+
 
 # loading target file
 LibraryInfo <- read_tsv(opt$options$conditions, 
@@ -124,47 +126,26 @@ if (opt$options$kallisto) {
 } else {
   majSequences <- descriptionPlots(counts=counts, group=LibraryInfo[,opt$options$varInt], col=colors)
 }
-# edgeR analysis
-if ( opt$options$tool == 'EdgeR' ) {
-    # checking parameters
-    checkParameters.edgeR(projectName=projectName,author=author,targetFile=targetFile,
-                      rawDir=rawDir,featuresToRemove=featuresToRemove,varInt=opt$options$varInt,
-                      condRef=opt$options$ref,batch=batch, alpha=opt$options$pvalue,pAdjustMethod=pAdjustMethod,
-                      cpmCutoff=cpmCutoff,gene.selection=gene.selection,
-                      normalizationMethod=normalizationMethod,colors=colors)
 
-    out.edgeR <- run.edgeR(counts=counts, target=LibraryInfo, varInt=opt$options$varInt, condRef=opt$options$ref,
-                       batch=batch, cpmCutoff=cpmCutoff, normalizationMethod=normalizationMethod,
-                       pAdjustMethod=pAdjustMethod)
-
-    # MDS + clustering
-    exploreCounts(object=out.edgeR$dge, group=LibraryInfo[,opt$options$varInt], gene.selection=gene.selection, col=colors)
-
-    # summary of the analysis (boxplots, dispersions, export table, nDiffTotal, histograms, MA plot)
-    summaryResults <- summarizeResults.edgeR(out.edgeR, group=LibraryInfo[,opt$options$varInt], counts=counts, alpha=opt$options$pvalue, col=colors)
-} else if ( opt$options$tool == 'DESeq' | opt$options$tool == 'DESeqLRT') {
 # DEseq analysis
-  checkParameters.DESeq2(projectName=projectName,author=author,targetFile=targetFile,
+checkParameters.DESeq2(projectName=projectName,author=author,targetFile=targetFile,
                                               featuresToRemove=featuresToRemove,varInt=opt$options$varInt,
                                               condRef=opt$options$ref,batch=opt$options$batch,fitType=fitType,cooksCutoff=cooksCutoff,
                                               independentFiltering=independentFiltering,alpha=opt$options$pvalue,pAdjustMethod=pAdjustMethod,
                                               typeTrans=typeTrans,locfunc=locfunc,colors=colors)
 
 
-  out.DESeq2 <- run.DESeq2(counts=counts, target=LibraryInfo, varInt=opt$options$varInt, batch=opt$options$batch, 
+out.DESeq2 <- run.DESeq2(counts=counts, target=LibraryInfo, varInt=opt$options$varInt, batch=opt$options$batch, 
                            interact=opt$options$interact, num_sva=opt$options$sva, kallisto=opt$options$kallisto,
                            locfunc=locfunc, fitType=fitType, pAdjustMethod=pAdjustMethod,
                            cooksCutoff=cooksCutoff, independentFiltering=independentFiltering, alpha=opt$options$pvalue)
-  # PCA + clustering
-  exploreCounts(object=out.DESeq2$dds, group=LibraryInfo[,opt$options$varInt], typeTrans=typeTrans, col=colors)
+# PCA + clustering
+exploreCounts(object=out.DESeq2$dds, group=LibraryInfo[,opt$options$varInt], typeTrans=typeTrans, col=colors)
 
-  # summary of the analysis (boxplots, dispersions, diag size factors, export table, nDiffTotal, histograms, MA plot)
-  summaryResults <- summarizeResults.DESeq2(out.DESeq2, group=LibraryInfo[,opt$options$varInt], col=colors,
+# summary of the analysis (boxplots, dispersions, diag size factors, export table, nDiffTotal, histograms, MA plot)
+summaryResults <- summarizeResults.DESeq2(out.DESeq2, group=LibraryInfo[,opt$options$varInt], col=colors,
                                           independentFiltering=independentFiltering,
                                           cooksCutoff=cooksCutoff, kallisto=opt$options$kallisto, alpha=opt$options$pvalue)
-} else {
-  stop("Tool should be one of 'EdgeR', 'DESeq'")
-}
 
 ################################################################################
 
@@ -174,21 +155,10 @@ save.image(file=paste0(projectName, ".RData"))
 
 
 # generating HTML report
-if ( opt$options$tool == 'EdgeR' ) {
-writeReport.edgeR(target=LibraryInfo, counts=counts, out.edgeR=out.edgeR, summaryResults=summaryResults,
-                  majSequences=majSequences, workDir=workDir, projectName=paste0("MvsF_", PCW_cutoff, collapse='_'), author=author,
-                  targetFile=targetFile, rawDir=rawDir, featuresToRemove=featuresToRemove, varInt=opt$options$varInt,
-                  condRef=opt$options$ref, batch=opt$options$batch, alpha=opt$options$pvalue, pAdjustMethod=pAdjustMethod, colors=colors,
-                  gene.selection=gene.selection, normalizationMethod=normalizationMethod)
-
-} else {
-  
-  writeReport.DESeq2(target=LibraryInfo, counts=counts, out.DESeq2=out.DESeq2, summaryResults=summaryResults,
+writeReport.DESeq2(target=LibraryInfo, counts=counts, out.DESeq2=out.DESeq2, summaryResults=summaryResults,
                    majSequences=majSequences, workDir=workDir, projectName=projectName, author=author,
                    targetFile=targetFile, featuresToRemove=featuresToRemove, varInt=opt$options$varInt,
-                   condRef=opt$options$ref, batch=opt$options$batch, fitType=fitType, cooksCutoff=cooksCutoff,
-                   independentFiltering=independentFiltering, alpha=opt$options$pvalue, pAdjustMethod=pAdjustMethod,
-                   typeTrans=typeTrans, locfunc=locfunc, colors=colors)
-}
-
-
+                   condRef=opt$options$ref, batch=opt$options$batch, interact=opt$options$interact, 
+                   fitType=fitType, cooksCutoff=cooksCutoff, independentFiltering=independentFiltering, 
+                   alpha=opt$options$pvalue, pAdjustMethod=pAdjustMethod, typeTrans=typeTrans, 
+                   locfunc=locfunc, colors=colors)
