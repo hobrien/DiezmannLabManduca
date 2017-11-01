@@ -11,4 +11,6 @@ lookup = {
     ('manduca_gff'):
         ('https://i5k.nal.usda.gov/sites/default/files/data/Arthropoda/mansex-%28Manduca_sexta%29/Current%20Genome%20Assembly/2.Official%20or%20Primary%20Gene%20Set/OGS2.0/'
         'ms_ogs.gff')
-}    
+}
+samples = ['A4', 'A5', 'A6', 'B5', 'B6', 'C5', 'C6', 'D4' 'E4'] 
+comparisons = ['WTvsUninfected', 'WTvshog1', 'Uninfectedvshog1']
