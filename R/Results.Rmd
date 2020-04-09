@@ -8,10 +8,6 @@ output:
     toc: yes
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(message=FALSE)
@@ -207,41 +203,41 @@ ggsave(ffPanelFolder("Fig.1_survival_25.pdf"), plot=combined, height=5, width=8,
 ```
 
 
-## 1c - Weight gain at 25˚C, 30˚C, and 37˚C
+## 1c - Weight gain at 25˚C  and 37˚C
+- growth is slightly slower at 37 deg (p=0.022)
 
 ```{r Weight_25_30_37}
-
-weight_25_versus_30C <- read_tsv(ffDataFolder("25_versus_30_weight.txt"))
-
 colour1 <- calc_pal()(12)[1]
-colour2 <- calc_pal()(12)[2]
-
-(weight_25_versus_30C_plot <- weight_25_versus_30C %>% gather('Day', 'weight', starts_with('Day')) %>%
-  mutate(Animal=paste0(Temperature, Experimentalist, Animal),
-         Temperature=factor(Temperature)) %>% #View()
-  ggplot(aes(x=Day, y=weight, colour=Temperature, group=Animal)) +
-  geom_line() +
-  ylab("Weight") +
-  xlab("") +
-  scale_y_continuous(limits=c(0,12)) +
-  scale_colour_manual(values=c(colour1, colour2)) +
-  my_theme)
-
 colour2 <- calc_pal()(12)[3]
+
 weight_25_versus_37C <- read_tsv(ffDataFolder("25_versus_37_weight.txt"))
-(weight_25_versus_37C_plot <- weight_25_versus_37C %>% gather('Day', 'weight', starts_with('Day')) %>%
+
+weight_25_versus_37C <- weight_25_versus_37C %>% 
+    mutate(starting_weight=Day1) %>%
+    gather('Day', 'Weight', starts_with('Day')) %>%
   mutate(Animal=paste0(Temperature, Experimentalist, Animal),
-         Temperature=factor(Temperature)) %>% #View()
-  ggplot(aes(x=Day, y=weight, colour=Temperature, group=Animal)) +
-  geom_line() +
-  ylab("Weight") +
+         Temperature=factor(Temperature),
+         weight_change=(Weight-starting_weight)/starting_weight*100,
+         Day=as.numeric(str_remove(Day, 'Day')))
+
+lm_fit <- lme(weight_change ~ Day + Day:Temperature, random=~1|Animal, data=weight_25_versus_37C, method='ML')
+lm_fit2 <- lme(weight_change ~ Day, random=~1|Animal, data=weight_25_versus_37C, method='ML')
+anova(lm_fit, lm_fit2)
+
+
+(weight_25_versus_37C_plot <- weight_25_versus_37C %>%  ggplot(aes(x=as.numeric(str_remove(Day, 'Day')), y=weight_change, colour=Temperature)) +
+  #geom_smooth(method='lm') +
+  geom_line(aes(group=Animal), alpha=1) +
+  #scale_x_continuous(limits=c(1,4), expand=expand_scale(mult = 0, add = 0)) +
+  ylab("% Weight Change") +
   xlab("") +
-  scale_y_continuous(limits=c(0,12)) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  #scale_y_continuous(limits=c(0,12)) +
   scale_colour_manual(values=c(colour1, colour2)) +
+  facet_grid(~ Temperature) + 
   my_theme)
 
-weight_temperature <- weight_25_versus_30C_plot | weight_25_versus_37C_plot
-ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_temperature, height=2.5, width=8, units="in")
+ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_25_versus_37C_plot, height=2.5, width=8, units="in")
 ```
 
 ## 1d - Survival and weight at 37˚C
@@ -251,21 +247,23 @@ ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_temperature, 
 drc_survival_weight_37C <- read_tsv(ffDataFolder("drc_survival_weight_37C.txt"))
 
 drc_weight_37C <- drc_survival_weight_37C %>% filter(Category == 'Weight') %>%
-  gather('Day', 'weight', starts_with('Day')) %>%
-  mutate(Animal=paste0(Pot, Treatment, Replicate),
-         Treatment=factor(Treatment))
+  mutate(starting_weight=Day1) %>%
+  gather('Day', 'Weight', starts_with('Day')) %>%
+  mutate(Animal=paste(Pot, Treatment, Replicate, sep='-'),
+         Treatment=factor(Treatment),
+         weight_change=(Weight-starting_weight)/starting_weight*100) 
 
 (drc_weight_37C_plot <- drc_weight_37C %>% 
-  ggplot(aes(x=Day, y=weight, colour=Treatment, group=Animal)) +
+  ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=Animal)) +
     geom_line(size=.25) +
     geom_point(size=.5) +
     my_theme +
     theme(legend.position='bottom',
           axis.title.x=element_blank()) +
-    ylab("Weight") +
+    ylab("% Weight Change") +
     scale_colour_manual(name="SC5314",
                         values=c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])) +
-    scale_y_continuous(limits=c(0,12)) +
+    #scale_y_continuous(limits=c(0,12)) +
     facet_wrap(~ Treatment))
 
 make_surv_plot <- function(data_t, my_title) {
@@ -294,7 +292,8 @@ ggsave(ffFigFolder("drc_survival_weight_37C.pdf"), plot=drc_survival_37C$plot, h
 
 drc_weight_37C <- drc_weight_37C %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
                                             Treatment=relevel(factor(Treatment), ref='PBS'))
-mod_37 <- lme(weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_37C,  Day < 4 & !is.na(weight)))
+
+mod_37 <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_37C,  Day < 4 & !is.na(Weight)))
 summary(mod_37)
 
 ```
@@ -308,20 +307,22 @@ hog1_weight_survival_37C <- read_tsv(ffDataFolder("hog1_weight_survival_37C.txt"
 
 hog1_weight_37C <- hog1_weight_survival_37C %>% filter(Category == 'Weight') %>%
   rownames_to_column() %>%
-  gather('Day', 'weight', starts_with('Day')) %>% 
-  mutate(Genotype=relevel(factor(Genotype), ref='WT'))
+  mutate(starting_weight=Day1) %>%
+  gather('Day', 'Weight', starts_with('Day')) %>% 
+  mutate(Genotype=relevel(factor(Genotype), ref='WT'),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
 
 (hog1_weight_37C_plot <- hog1_weight_37C %>%
-  ggplot(aes(x=Day, y=weight, colour=Genotype, group=rowname)) +         
+  ggplot(aes(x=Day, y=weight_change, colour=Genotype, group=rowname)) +         
     geom_line(size=.25) +
     geom_point(size=.5) +
     my_theme +
     theme(legend.position='bottom',
           axis.title.x=element_blank()) +
-    ylab("Weight") +
+    ylab("% Weight Change") +
     scale_colour_manual(name="",
                         values=c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])) +
-    scale_y_continuous(limits=c(0,12)) +
+    #scale_y_continuous(limits=c(0,12)) +
     facet_wrap(~ Genotype))
 
 make_surv_plot <- function(data_t, my_title) {
@@ -347,16 +348,6 @@ data_t <- hog1_weight_survival_37C %>%
 
 (hog1_survival_plot <- make_surv_plot(data_t, ""))
 
-#pair-wise survival comparison stats
-
-#data_t <- hog1_weight_survival_37C %>% 
- # filter(Category == 'Survival' & Genotype %in% c('WT', 'hog1/hog1::HOG1')) %>%
- #convert_srv_data()
-
-#(hog1_survival_plot <- make_surv_plot(data_t, ""))
-
-
-
 
 ggsave(ffPanelFolder("hog1_survival_37C.pdf"), plot=hog1_survival_plot$plot, height=2.5, width=4, units="in")
 
@@ -366,11 +357,8 @@ ggsave(ffPanelFolder("Fig.2_survival_37.pdf"), plot=combined2, height=7, width=8
 
 hog1_weight_37C <- hog1_weight_37C %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
                                             Genotype=relevel(factor(Genotype), ref='WT'))
-mod_hog1 <- lme(weight ~ Day + Genotype:Day, random= ~1|rowname, data=filter(hog1_weight_37C,  Day < 4 & !is.na(weight)))
+mod_hog1 <- lme(Weight ~ Day + Genotype:Day, random= ~1|rowname, data=filter(hog1_weight_37C,  Day < 4 & !is.na(Weight)))
 summary(mod_hog1)
-
-
-
 ```
 
 
@@ -379,22 +367,31 @@ summary(mod_hog1)
 ```{r Heat_killed_37C}
 
 heat_killed_weight <- read_tsv(ffDataFolder("heat_killed_weight.txt")) %>%
-  rownames_to_column() %>%
-  gather('Day', 'weight', starts_with('Day'))
+    rownames_to_column() %>%
+    mutate(starting_weight=Day1) %>%
+    gather('Day', 'Weight', starts_with('Day')) %>% 
+    mutate(Temperature=factor(Treatment),
+           weight_change=(Weight-starting_weight)/starting_weight*100,
+           Day=as.numeric(str_remove(Day, 'Day')))
+
+lm_fit <- lme(weight_change ~ Day + Day:Treatment, random=~1|rowname, data=filter(heat_killed_weight, Treatment != 'alive'), method='ML')
+
+lm_fit2 <- lme(weight_change ~ Day, random=~1|rowname, data=filter(heat_killed_weight, Treatment != 'alive'), method='ML')
+
+anova(lm_fit, lm_fit2)
 
 (heat_killed_weight_plot <- heat_killed_weight %>% 
-  ggplot(aes(x=Day, y=weight, colour=factor(Treatment), group=rowname)) +
-    geom_line(size=.25) +
-    geom_point(size=.5) +
-    my_theme +
-    theme(legend.position='bottom',
-          axis.title.x=element_blank()) +
-    ylab("Weight") +
-    scale_colour_manual(name="Treatment",
+  ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=rowname)) +
+  geom_line( alpha=.2) +
+  scale_x_continuous(limits=c(1,2), expand=expand_scale(mult = 0, add = 0)) +
+  ylab("% Weight Change") +
+  xlab("") +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  scale_colour_manual(name="Treatment",
                         values=c(calc_pal()(12)[1:2],calc_pal()(12)[5:7])) +
-    scale_y_continuous(limits=c(0,12)) +
-    facet_wrap(~ Treatment))
-
+  my_theme+
+  facet_wrap(~ Treatment)
+)
 
 heat_killed_survival <- read_tsv(ffDataFolder("heat_killed_survival.txt"))
 
@@ -432,7 +429,7 @@ ggsave(ffPanelFolder("Fig.S2_heat_killed_combined.pdf"), plot=combined3, height=
 
 heat_killed_weight <- heat_killed_weight %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
                                             Treatment=relevel(factor(Treatment), ref='PBS'))
-mod_hog1 <- lme(weight ~ Day + Treatment:Day, random= ~1|rowname, data=filter(heat_killed_weight,  Day < 4 & !is.na(weight)))
+mod_hog1 <- lme(Weight ~ Day + Treatment:Day, random= ~1|rowname, data=filter(heat_killed_weight,  Day < 4 & !is.na(Weight)))
 summary(mod_hog1)
 
 ```
@@ -520,23 +517,25 @@ ggsave(ffPanelFolder("Fig.5a_species_survival_combined.pdf"), plot=species_survi
 drc_weight_species <-read_tsv(ffDataFolder("drc_weight_species.txt"))
 
 drc_weight_species <- drc_weight_species %>% 
+  mutate(starting_weight=Day1) %>%
   gather('Day', 'Weight', starts_with('Day')) %>%
   mutate(Animal=paste0(Pot, Treatment, Species),
          Treatment=factor(Treatment),
          Day=str_remove(Day, "Day"),
-         Species=str_replace(Species, "[a-z]+_", ". "))
+         Species=str_replace(Species, "[a-z]+_", ". "),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
 
-drc_weight_species %>% ggplot(aes(x=Day, y=Weight, colour=Treatment, group=Animal)) +
+drc_weight_species %>% ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=Animal)) +
     geom_line(size=.25) +
     geom_point(size=.5) +
     facet_grid(Species ~ Treatment) +
     my_theme +
     theme(legend.position='bottom',
           axis.title.x=element_blank()) +
-    ylab("Weight") +
+    ylab("% Weight Change") +
     scale_colour_manual(name="Cells per animal",
                     values=c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])) +
-    scale_y_continuous(limits=c(0,12)) +
+    #scale_y_continuous(limits=c(0,12)) +
     theme(strip.text.y=element_text(face="italic"))
 
 ggsave(ffPanelFolder("Fig.5b_drc_weight_species.pdf"), height=8, units="in")
@@ -582,17 +581,21 @@ summary(mod_mp)
 fluconazole_weight <-read_tsv(ffDataFolder("fluconazole_weight.txt"))
 
 fluconazole_weight <- fluconazole_weight %>%
+  mutate(starting_weight=Day1) %>%
   gather('Day', 'Weight', starts_with('Day')) %>%
-  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg' , '1 mg/kg' , '4 mg/kg' , '16 mg/kg' , '32 mg/kg' , '64 mg/kg' , 'PBS')),
-         Day=as.numeric(str_remove(Day, "Day")))
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg' , '1 mg/kg' , '4 mg/kg',
+                                              '16 mg/kg' , '32 mg/kg' , '64 mg/kg',
+                                              'PBS')),
+         Day=as.numeric(str_remove(Day, "Day")),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
 
-(fluconazole_weight_plot <- fluconazole_weight %>% ggplot(aes(x=Day, y=Weight, group=Pot)) +
+(fluconazole_weight_plot <- fluconazole_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
     geom_line(size=.25, colour=calc_pal()(12)[1]) +
     geom_point(size=.5, colour=calc_pal()(12)[1]) +
     facet_grid(. ~ Treatment) +
     my_theme +
     theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
-    ylab("Weight") +
+    ylab("% Weight Change") +
     scale_colour_manual(name="Fluconazole",
                     values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
     scale_x_continuous(breaks=c(1,2,3,4)))
@@ -649,25 +652,29 @@ data_t <- fluconazole_survival %>%
 caspofungin_weight <-read_tsv(ffDataFolder("caspofungin_weight.txt"))
 
 caspofungin_weight <- caspofungin_weight %>%
+  mutate(starting_weight=Day1) %>%
   gather('Day', 'Weight', starts_with('Day')) %>%
   mutate(Treatment=factor(Treatment),
-         Day=as.numeric(str_remove(Day, "Day")))
+         Day=as.numeric(str_remove(Day, "Day")),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
 
-(caspofungin_weight_plot <- caspofungin_weight %>% ggplot(aes(x=Day, y=Weight, group=Pot)) +
+(caspofungin_weight_plot <- caspofungin_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
     geom_line(size=.25, colour=calc_pal()(12)[1]) +
     geom_point(size=.5, colour=calc_pal()(12)[1]) +
     facet_grid(. ~ Treatment) +
     my_theme +
     theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
     theme(legend.position='bottom') +
-    ylab("Weight") +
+    ylab("% Weight Change") +
     scale_colour_manual(name="Fluconazole",
                     values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
     scale_x_continuous(breaks=c(1,2,3,4)))
 
 caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='4 mg/kg'))
 mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight)))
+
 summary(mod_cas)
+
 
 ```
 
