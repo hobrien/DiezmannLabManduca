@@ -30,16 +30,16 @@ library(readxl)
 library(VennDiagram)
 library(tidyverse)
 library(patchwork)
+library(folderfun)
 
+setff("FigFolder", file.path(Sys.getenv("StephRNAseq"), "Manduca", "Figures", "R_Figures"))
+setff("PanelFolder", file.path(Sys.getenv("StephRNAseq"), "Manduca", "Figures", "R_Figures", "Panels"))
+setff("DataFolder", file.path(Sys.getenv("StephRNAseq"), "Manduca", "DataFiles"))
+setff("MappingsFolder", file.path(Sys.getenv("StephRNAseq"), "Mappings"))
+setff("ResultsFolder", file.path(Sys.getenv("StephRNAseq"), "Results"))
+setff("MouseFolder", file.path(Sys.getenv("StephRNAseq"), "Mouse"))
 
-folder="~/Dropbox/Stephanie/R"
-source(file.path(folder, "Scripts", "FormatGGplot.R"))
-
-FigFolder <- file.path(folder, "Manduca", "Figures", "R_Figures")
-
-DataFolder <- file.path(folder, "Manduca", "DataFiles")
-
-
+source(file.path(Sys.getenv("StephRNAseq"), "Scripts", "FormatGGplot.R"))
 
 convert_srv_data <- function(data_raw) {
  data_raw %>% mutate(futime=as.integer(case_when(Day2 == 1 ~ 1,
@@ -94,7 +94,7 @@ draw_srv_plot <- function(fit1, labels, title, colours, legend_rows){
 ## 1a - Dose-response curves of lab strains at 25˚C
 
 ```{r DRC_lab_strains_25C}
-drc_survival_25C <- read_tsv(file.path(DataFolder, "drc_survival_25C.txt"))
+drc_survival_25C <- read_tsv(ffDataFolder("drc_survival_25C.txt"))
 
 make_surv_plot <- function(data_t, my_title) {
 
@@ -116,7 +116,7 @@ data_t <- filter(drc_survival_25C, Strain == 'YSD89') %>% convert_srv_data()
 
 (YSD89_survival_25C_plot <- make_surv_plot(data_t, "SN95"))
    
-ggsave(file.path(FigFolder, "Panels", "YSD89_survival_25C.pdf"), plot=YSD89_survival_25C_plot$plot, height=2.5, width=4, units="in")
+ggsave(ffPanelFolder("YSD89_survival_25C.pdf"), plot=YSD89_survival_25C_plot$plot, height=2.5, width=4, units="in")
 
 
 # YSD85
@@ -124,14 +124,14 @@ data_t <- filter(drc_survival_25C, Strain == 'YSD85') %>% convert_srv_data()
 
 (YSD85_survival_25C_plot <- make_surv_plot(data_t, "SC5314"))
 
-ggsave(file.path(FigFolder, "Panels", "YSD85_survival_25C.pdf"), plot=YSD85_survival_25C_plot$plot, height=2.5, width=4, units="in")
+ggsave(ffPanelFolder("YSD85_survival_25C.pdf"), plot=YSD85_survival_25C_plot$plot, height=2.5, width=4, units="in")
 
 ```
 
 ## 1b - C. albicans mutants survival at 25C
 
 ```{r Mutants_25C}
-mutant_survival_25C <- read_tsv(file.path(DataFolder, "mutant_survival_25C.txt"))
+mutant_survival_25C <- read_tsv(ffDataFolder("mutant_survival_25C.txt"))
 
 make_surv_plot <- function(data_t) {
 
@@ -159,7 +159,7 @@ data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') |
 
 (ahr1_survival_25C_plot <- make_surv_plot(data_t))
    
-ggsave(file.path(FigFolder, "Panels", "ahr1_survival_25C.pdf"), plot=ahr1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
+ggsave(ffPanelFolder("ahr1_survival_25C.pdf"), plot=ahr1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
 
 # pair-wise comparison with wild type to assess significance
 #data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'ahr1/ahr1::AHR1')) %>% 
@@ -176,7 +176,7 @@ data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') |
 
 (cka2_survival_25C_plot <- make_surv_plot(data_t))
    
-ggsave(file.path(FigFolder, "Panels", "cka2_survival_25C.pdf"), plot=cka2_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
+ggsave(ffPanelFolder("cka2_survival_25C.pdf"), plot=cka2_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
 
 #pair-wise comparison with wild type to assess significance
 #data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'cka2/cka2')) %>% #convert_srv_data()
@@ -192,7 +192,7 @@ data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') |
 
 (hog1_survival_25C_plot <- make_surv_plot(data_t))
    
-ggsave(file.path(FigFolder, "Panels", "hog1_survival_25C.pdf"), plot=hog1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
+ggsave(ffPanelFolder("hog1_survival_25C.pdf"), plot=hog1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
 
 #pair-wise comparison with wild type to assess significance
 #data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'hog1/hog1::HOG1')) %>% #convert_srv_data()
@@ -203,7 +203,7 @@ ggsave(file.path(FigFolder, "Panels", "hog1_survival_25C.pdf"), plot=hog1_surviv
 
 combined <- (YSD89_survival_25C_plot$plot | YSD85_survival_25C_plot$plot) / (hog1_survival_25C_plot$plot | cka2_survival_25C_plot$plot | ahr1_survival_25C_plot$plot )
 
-ggsave(file.path(FigFolder, "Panels", "Fig.1_survival_25.pdf"), plot=combined, height=5, width=8, units="in")
+ggsave(ffPanelFolder("Fig.1_survival_25.pdf"), plot=combined, height=5, width=8, units="in")
 ```
 
 
@@ -211,7 +211,7 @@ ggsave(file.path(FigFolder, "Panels", "Fig.1_survival_25.pdf"), plot=combined, h
 
 ```{r Weight_25_30_37}
 
-weight_25_versus_30C <- read_tsv(file.path(DataFolder, "25_versus_30_weight.txt"))
+weight_25_versus_30C <- read_tsv(ffDataFolder("25_versus_30_weight.txt"))
 
 colour1 <- calc_pal()(12)[1]
 colour2 <- calc_pal()(12)[2]
@@ -228,7 +228,7 @@ colour2 <- calc_pal()(12)[2]
   my_theme)
 
 colour2 <- calc_pal()(12)[3]
-weight_25_versus_37C <- read_tsv(file.path(DataFolder, "25_versus_37_weight.txt"))
+weight_25_versus_37C <- read_tsv(ffDataFolder("25_versus_37_weight.txt"))
 (weight_25_versus_37C_plot <- weight_25_versus_37C %>% gather('Day', 'weight', starts_with('Day')) %>%
   mutate(Animal=paste0(Temperature, Experimentalist, Animal),
          Temperature=factor(Temperature)) %>% #View()
@@ -241,14 +241,14 @@ weight_25_versus_37C <- read_tsv(file.path(DataFolder, "25_versus_37_weight.txt"
   my_theme)
 
 weight_temperature <- weight_25_versus_30C_plot | weight_25_versus_37C_plot
-ggsave(file.path(FigFolder, "Panels", "Fig.S1_weight_temperature.pdf"), plot=weight_temperature, height=2.5, width=8, units="in")
+ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_temperature, height=2.5, width=8, units="in")
 ```
 
 ## 1d - Survival and weight at 37˚C
 
 ```{r Survival_weight_37C}
 
-drc_survival_weight_37C <- read_tsv(file.path(DataFolder, "drc_survival_weight_37C.txt"))
+drc_survival_weight_37C <- read_tsv(ffDataFolder("drc_survival_weight_37C.txt"))
 
 drc_weight_37C <- drc_survival_weight_37C %>% filter(Category == 'Weight') %>%
   gather('Day', 'weight', starts_with('Day')) %>%
@@ -290,7 +290,7 @@ data_t <- drc_survival_weight_37C %>%
 
 (drc_survival_37C <- make_surv_plot(data_t, "SC5314"))
 
-ggsave(file.path(FigFolder, "drc_survival_weight_37C.pdf"), plot=drc_survival_37C$plot, height=2.5, width=4, units="in")
+ggsave(ffFigFolder("drc_survival_weight_37C.pdf"), plot=drc_survival_37C$plot, height=2.5, width=4, units="in")
 
 drc_weight_37C <- drc_weight_37C %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
                                             Treatment=relevel(factor(Treatment), ref='PBS'))
@@ -304,7 +304,7 @@ summary(mod_37)
 
 ```{r hog1_mutant_37C}
 
-hog1_weight_survival_37C <- read_tsv(file.path(DataFolder, "hog1_weight_survival_37C.txt"))
+hog1_weight_survival_37C <- read_tsv(ffDataFolder("hog1_weight_survival_37C.txt"))
 
 hog1_weight_37C <- hog1_weight_survival_37C %>% filter(Category == 'Weight') %>%
   rownames_to_column() %>%
@@ -358,11 +358,11 @@ data_t <- hog1_weight_survival_37C %>%
 
 
 
-ggsave(file.path(FigFolder, "Panels", "hog1_survival_37C.pdf"), plot=hog1_survival_plot$plot, height=2.5, width=4, units="in")
+ggsave(ffPanelFolder("hog1_survival_37C.pdf"), plot=hog1_survival_plot$plot, height=2.5, width=4, units="in")
 
 combined2 <- drc_survival_37C$plot + drc_weight_37C_plot + hog1_survival_plot$plot + hog1_weight_37C_plot + plot_layout(ncol = 2, heights = c(2, 2))
 
-ggsave(file.path(FigFolder, "Panels", "Fig.2_survival_37.pdf"), plot=combined2, height=7, width=8, units="in")
+ggsave(ffPanelFolder("Fig.2_survival_37.pdf"), plot=combined2, height=7, width=8, units="in")
 
 hog1_weight_37C <- hog1_weight_37C %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
                                             Genotype=relevel(factor(Genotype), ref='WT'))
@@ -378,7 +378,7 @@ summary(mod_hog1)
 
 ```{r Heat_killed_37C}
 
-heat_killed_weight <- read_tsv(file.path(DataFolder, "heat_killed_weight.txt")) %>%
+heat_killed_weight <- read_tsv(ffDataFolder("heat_killed_weight.txt")) %>%
   rownames_to_column() %>%
   gather('Day', 'weight', starts_with('Day'))
 
@@ -396,7 +396,7 @@ heat_killed_weight <- read_tsv(file.path(DataFolder, "heat_killed_weight.txt")) 
     facet_wrap(~ Treatment))
 
 
-heat_killed_survival <- read_tsv(file.path(DataFolder, "heat_killed_survival.txt"))
+heat_killed_survival <- read_tsv(ffDataFolder("heat_killed_survival.txt"))
 
 convert_srv_data_2day <- function(data_raw) {
  data_raw %>% mutate(futime=as.integer(case_when(Day2 == 1 ~ 1,
@@ -424,11 +424,11 @@ data_t <- heat_killed_survival %>%  convert_srv_data_2day()
 
 (heat_killed_survival_plot <- make_surv_plot(data_t, ""))
 
-ggsave(file.path(FigFolder, "Panels", "heat_killed_survival_plot.pdf"), plot=heat_killed_survival_plot$plot, height=2.5, width=4, units="in")
+ggsave(ffPanelFolder("heat_killed_survival_plot.pdf"), plot=heat_killed_survival_plot$plot, height=2.5, width=4, units="in")
 
 combined3 <-  heat_killed_survival_plot$plot | heat_killed_weight_plot
 
-ggsave(file.path(FigFolder, "Panels", "Fig.S2_heat_killed_combined.pdf"), plot=combined3, height=3, width=8, units="in")
+ggsave(ffPanelFolder("Fig.S2_heat_killed_combined.pdf"), plot=combined3, height=3, width=8, units="in")
 
 heat_killed_weight <- heat_killed_weight %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
                                             Treatment=relevel(factor(Treatment), ref='PBS'))
@@ -456,7 +456,7 @@ make_surv_plot <- function(data_t, my_colours) {
  draw_srv_plot(fit1, labels, title, my_colours, 2)
 }
 
-drc_survival_species <- read_tsv(file.path(DataFolder, "drc_survival_species.txt"))
+drc_survival_species <- read_tsv(ffDataFolder("drc_survival_species.txt"))
 
 # Saccharomyces_cerevisiae
 
@@ -464,7 +464,7 @@ data_t <- filter(drc_survival_species, Species == 'Saccharomyces_cerevisiae') %>
 
 (drc_survival_sc_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
    
-ggsave(file.path(FigFolder, "Panels", "drc_survival_sc.png"), plot=drc_survival_sc_plot$plot, bg="transparent")
+ggsave(ffPanelFolder("drc_survival_sc.png"), plot=drc_survival_sc_plot$plot, bg="transparent")
 
 # Metschnikowia_pulcherrima
 
@@ -472,7 +472,7 @@ data_t <- filter(drc_survival_species, Species == 'Metschnikowia_pulcherrima') %
 
 (drc_survival_mp_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[5])))
    
-ggsave(file.path(FigFolder, "Panels", "drc_survival_mp.png"), plot=drc_survival_mp_plot$plot, bg="transparent")
+ggsave(ffPanelFolder("drc_survival_mp.png"), plot=drc_survival_mp_plot$plot, bg="transparent")
 
 # Cryptococcus_neoformans
 
@@ -480,7 +480,7 @@ data_t <- filter(drc_survival_species, Species == 'Cryptococcus_neoformans') %>%
 
 (drc_survival_cn_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
    
-ggsave(file.path(FigFolder, "Panels", "drc_survival_cn.png"), plot=drc_survival_cn_plot$plot, bg="transparent")
+ggsave(ffPanelFolder("drc_survival_cn.png"), plot=drc_survival_cn_plot$plot, bg="transparent")
 
 # Candida_glabrata 
 
@@ -488,7 +488,7 @@ data_t <- filter(drc_survival_species, Species == 'Candida_glabrata') %>% conver
 
 (drc_survival_cg_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
    
-ggsave(file.path(FigFolder, "Panels", "drc_survival_cg.png"), plot=drc_survival_cg_plot$plot, bg="transparent")
+ggsave(ffPanelFolder("drc_survival_cg.png"), plot=drc_survival_cg_plot$plot, bg="transparent")
 
 # Candida_auris 
 
@@ -496,7 +496,7 @@ data_t <- filter(drc_survival_species, Species == 'Candida_auris') %>% convert_s
 
 (drc_survival_cau_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
    
-ggsave(file.path(FigFolder, "Panels" ,"drc_survival_cau.png"), plot=drc_survival_cau_plot$plot, bg="transparent")
+ggsave(ffPanelFolder("drc_survival_cau.png"), plot=drc_survival_cau_plot$plot, bg="transparent")
 
 # Candida_albicans
 
@@ -504,20 +504,20 @@ data_t <- filter(drc_survival_species, Species == 'Candida_albicans') %>% conver
 
 (drc_survival_cab_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
    
-ggsave(file.path(FigFolder, "Panels", "drc_survival_cab.png"), plot=drc_survival_cab_plot$plot, bg="transparent")
+ggsave(ffPanelFolder("drc_survival_cab.png"), plot=drc_survival_cab_plot$plot, bg="transparent")
 
 species_survival_combined <- (drc_survival_sc_plot$plot | drc_survival_mp_plot$plot) /
                     (drc_survival_cn_plot$plot | drc_survival_cg_plot$plot) /
                     (drc_survival_cau_plot$plot | drc_survival_cab_plot$plot) 
  
-ggsave(file.path(FigFolder, "Panels", "Fig.5a_species_survival_combined.pdf"), plot=species_survival_combined, width=8, height=7.5, units="in") 
+ggsave(ffPanelFolder("Fig.5a_species_survival_combined.pdf"), plot=species_survival_combined, width=8, height=7.5, units="in") 
 ```
 
 ## 2b - Weight changes during infection with six different yeast species
 
 ```{r DRC_weight_yeast_species}
 
-drc_weight_species <-read_tsv(file.path(DataFolder, "drc_weight_species.txt"))
+drc_weight_species <-read_tsv(ffDataFolder("drc_weight_species.txt"))
 
 drc_weight_species <- drc_weight_species %>% 
   gather('Day', 'Weight', starts_with('Day')) %>%
@@ -539,7 +539,7 @@ drc_weight_species %>% ggplot(aes(x=Day, y=Weight, colour=Treatment, group=Anima
     scale_y_continuous(limits=c(0,12)) +
     theme(strip.text.y=element_text(face="italic"))
 
-ggsave(file.path(FigFolder, "Panels", "Fig.5b_drc_weight_species.pdf"), height=8, units="in")
+ggsave(ffPanelFolder("Fig.5b_drc_weight_species.pdf"), height=8, units="in")
 
 drc_weight_species <- drc_weight_species %>% 
   mutate(Species = relevel(factor(Species), ref='S. cerevisiae'),
@@ -579,7 +579,7 @@ summary(mod_mp)
 
 ```{r fluconazole_weight}
 
-fluconazole_weight <-read_tsv(file.path(DataFolder, "fluconazole_weight.txt"))
+fluconazole_weight <-read_tsv(ffDataFolder("fluconazole_weight.txt"))
 
 fluconazole_weight <- fluconazole_weight %>%
   gather('Day', 'Weight', starts_with('Day')) %>%
@@ -608,7 +608,7 @@ summary(mod_flu)
 ## 3b - Fluconazole survival
 
 ```{r fluconazole_survival}
-fluconazole_survival <-read_tsv(file.path(DataFolder, "fluconazole_survival.txt"))
+fluconazole_survival <-read_tsv(ffDataFolder("fluconazole_survival.txt"))
 
 make_surv_plot <- function(data_t, my_title) {
 
@@ -646,7 +646,7 @@ data_t <- fluconazole_survival %>%
 
 ```{r caspofungin_weight}
 
-caspofungin_weight <-read_tsv(file.path(DataFolder, "caspofungin_weight.txt"))
+caspofungin_weight <-read_tsv(ffDataFolder("caspofungin_weight.txt"))
 
 caspofungin_weight <- caspofungin_weight %>%
   gather('Day', 'Weight', starts_with('Day')) %>%
@@ -676,7 +676,7 @@ summary(mod_cas)
 
 ```{r caspofungin_survival}
 
-caspofungin_survival <-read_tsv(file.path(DataFolder, "caspofungin_survival.txt"))
+caspofungin_survival <-read_tsv(ffDataFolder("caspofungin_survival.txt"))
 
 make_surv_plot <- function(data_t, my_title) {
 
@@ -705,7 +705,7 @@ drugs_combined <- (fluconazole_plot$plot | fluconazole_weight_plot) /
 #drugs_combined <- (fluconazole_weight_plot | caspofungin_weight_plot) /
  #                 (fluconazole_plot$plot | caspofungin_plot$plot)
 
-ggsave(file.path(FigFolder, "Panels", "Fig.4_drugs_combined.pdf"), plot=drugs_combined, height=6, width=8, units='in')
+ggsave(ffPanelFolder("Fig.4_drugs_combined.pdf"), plot=drugs_combined, height=6, width=8, units='in')
 
 
 data_t <- caspofungin_survival %>% 
@@ -723,7 +723,7 @@ data_t <- caspofungin_survival %>%
 ## 4a - Fungal burden in feces
 
 ```{r fungal_burden_feces}
-fungal_burden_feces <-read_tsv(file.path(DataFolder, "fungal_burden_feces.txt"))
+fungal_burden_feces <-read_tsv(ffDataFolder("fungal_burden_feces.txt"))
 
 (feces_plot <- fungal_burden_feces %>% 
   group_by(Pot, Treatment, Day) %>%
@@ -752,7 +752,7 @@ fungal_burden_feces <-read_tsv(file.path(DataFolder, "fungal_burden_feces.txt"))
 
 ```{r fungal_burden_hemolymph}
 
-fungal_burden_hemolymph <-read_tsv(file.path(DataFolder, "fungal_burden_hemolymph.txt"))
+fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
 
 (lymph_plot <- fungal_burden_hemolymph %>% 
   dplyr::rename(CFU=`CFU/100 ul hemolymph`) %>%
@@ -778,7 +778,7 @@ fungal_burden_hemolymph <-read_tsv(file.path(DataFolder, "fungal_burden_hemolymp
 ## 4c - Fungal burden and caterpillar weight
 
 ```{r fungal_burden_weight}
-fungal_burden_weight <-read_tsv(file.path(DataFolder, "fungal_burden_weight.txt"))
+fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
 
 (weight_plot <- fungal_burden_weight %>% 
  gather('Day', 'Weight', starts_with('Day')) %>% #View()
@@ -796,7 +796,7 @@ fungal_burden_weight <-read_tsv(file.path(DataFolder, "fungal_burden_weight.txt"
 library(patchwork)
 
 combined_plot <- feces_plot / lymph_plot / weight_plot
-ggsave(file.path(FigFolder, "Panels", "Fig.3_fungal_burden.pdf"), plot=combined_plot, height=8, units="in")
+ggsave(ffPanelFolder("Fig.3_fungal_burden.pdf"), plot=combined_plot, height=8, units="in")
 ```
 
 
@@ -804,21 +804,21 @@ ggsave(file.path(FigFolder, "Panels", "Fig.3_fungal_burden.pdf"), plot=combined_
 ## Library Size
 ```{r}
 
-rna_seq_folder <- "/Users/heo3/BTSync/Projects/Steph"
-load(file.path(rna_seq_folder, "Results", "ManducaInfection.RData"))
-folder=file.path(rna_seq_folder, "Mappings")
-conditions <- read_tsv(file.path(rna_seq_folder, "conditions.txt"))
+#rna_seq_folder <- "/Users/heo3/BTSync/Projects/Steph"
+load(ffResultsFolder("ManducaInfection.RData"))
+#folder=file.path(rna_seq_folder, "Mappings")
+#conditions <- read_tsv(file.path(rna_seq_folder, "conditions.txt"))
 cov <- data.frame()
-for (file in dir(folder, '*cov.txt')) {
-  cov <- read_delim(paste(folder, file, sep='/'), "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
+for (file in dir(ffMappingsFolder(), '*cov.txt')) {
+  cov <- read_delim(ffMappingsFolder(file), "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
     mutate(sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
     rbind(cov)
 }
 
 cov <- mutate(cov, Organism=ifelse(str_detect(X1, '^gi'), 'Manduca', 'Candida'))
 
-for (file in dir(folder, '*stats.txt')) {
-  temp <- read_csv(paste(folder, file, sep='/'))
+for (file in dir(ffMappingsFolder(), '*stats.txt')) {
+  temp <- read_csv(ffMappingsFolder(file))
   colnames(temp)=c("x1")
   cov <-filter(temp, str_detect(x1, "Unmapped reads")) %>% separate(x1, into=c("Organism", "X2", "X3")) %>% 
     mutate(X1=NA, X4=NA, sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
@@ -834,7 +834,7 @@ LibraryInfo <- LibraryInfo %>% arrange(condition)
 
 cov %>% group_by(Organism, sample) %>% 
   summarise(total_reads=sum(as.integer(X3))) %>% 
-  full_join(conditions, by=c("sample" = "SampleID")) %>% 
+  full_join(LibraryInfo, by=c("sample" = "SampleID")) %>% 
   mutate(sample=factor(sample, levels=LibraryInfo$SampleID)) %>%
   filter(condition != 'hog1') %>%
   ggplot(aes(x=sample, y=total_reads, fill=condition)) +
@@ -843,7 +843,7 @@ cov %>% group_by(Organism, sample) %>%
     my_theme +
     scale_fill_manual(values=c(colours[1], colours[3]))
 
-ggsave(file.path(FigFolder, "chart1.pdf"))
+ggsave(ffFigFolder("chart1.pdf"))
 
 ```
 
@@ -851,15 +851,11 @@ ggsave(file.path(FigFolder, "chart1.pdf"))
 ```{r upset}
 #need a matrix with genes in rows and comparisons as columns
 
-DE <- read_tsv(file.path(rna_seq_folder, "Results", "tables", "WTvsUninfected.up.txt")) %>% select(Id) %>% mutate(WTvsUninfected.up=1) %>%
-  full_join(read_tsv(file.path(rna_seq_folder, "Results", "tables", "WTvsUninfected.down.txt")) %>% select(Id) %>% mutate(WTvsUninfected.down=1)) #%>%
-#    full_join(read_tsv("/Users/heo3/BTSync/Projects/Steph/Results/tables/WTvshog1.up.txt") %>% select(Id) %>% mutate(WTvshog1.up=1)) %>%
-#  full_join(read_tsv("/Users/heo3/BTSync/Projects/Steph/Results/tables/WTvshog1.down.txt") %>% select(Id) %>% mutate(WTvshog1.down=1)) %>%
-#    full_join(read_tsv("/Users/heo3/BTSync/Projects/Steph/Results/tables/Uninfectedvshog1.up.txt") %>% select(Id) %>% mutate(Uninfectedvshog1.up=1)) %>%
-#  full_join(read_tsv("/Users/heo3/BTSync/Projects/Steph/Results/tables/Uninfectedvshog1.down.txt") %>% select(Id) %>% mutate(Uninfectedvshog1.down=1)) 
+DE <- read_tsv(ffResultsFolder("tables", "WTvsUninfected.up.txt")) %>% select(Id) %>% mutate(WTvsUninfected.up=1) %>%
+  full_join(read_tsv(ffResultsFolder("tables", "WTvsUninfected.down.txt")) %>% select(Id) %>% mutate(WTvsUninfected.down=1)) 
 
 DE[is.na(DE)]<-0
-pdf(file.path(FigFolder, "chart2.pdf"), width=6, height=4)
+pdf(ffFigFolder("chart2.pdf"), width=6, height=4)
 upset(data.frame(DE), nsets = 6)
 dev.off()
 ```
@@ -869,9 +865,9 @@ dev.off()
 
 vsd <- varianceStabilizingTransformation(out.DESeq2$dds, blind=FALSE)
 
-DE_vsd <- assay(vsd)[DE$Id,conditions[conditions$condition != 'hog1',1]$SampleID]
+DE_vsd <- assay(vsd)[DE$Id,LibraryInfo[LibraryInfo$condition != 'hog1',]$SampleID]
 #colnames(DE_vsd) <- LibraryInfo[match(colnames(DE_vsd), LibraryInfo$SampleID),]$condition
-pdf(file.path(FigFolder, "heatmap2.pdf"), width=8, height=8)
+pdf(ffFigFolder("heatmap2.pdf"), width=8, height=8)
 heatmap <- heatmap.2(DE_vsd, cexCol=1, labRow = FALSE, trace = 'none', col=viridis(20)[10:20])
 dev.off()
 ```
@@ -880,94 +876,88 @@ dev.off()
 myCol <- brewer.pal(3, "Pastel2")
 
 Mouse_de <- 
-  read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>%
+  read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>%
   dplyr::group_by(`Query.ID`) %>% 
   dplyr::slice(1) %>% 
   dplyr::ungroup() %>%
   dplyr::select(`Query.ID`) %>% 
   mutate(Kidney="repressed") %>%
-  bind_rows(read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>%
+  bind_rows(read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>%
               dplyr::group_by(`Query.ID`) %>% 
               dplyr::slice(1) %>% 
               dplyr::ungroup() %>%
               dplyr::select(`Query.ID`) %>% 
               dplyr::mutate(Kidney="induced")) %>%
-  full_join(bind_rows(read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2) %>%
+  full_join(bind_rows(read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2) %>%
                         dplyr::group_by(`Query.ID`) %>% 
                         dplyr::slice(1) %>% 
                         dplyr::ungroup() %>%
                         dplyr::select(`Query.ID`) %>% 
                         dplyr::mutate(Tongue="repressed"),
-                     read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=3) %>%
+                     read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=3) %>%
                        dplyr::group_by(`Query.ID`) %>% 
                        dplyr::slice(1) %>% 
                        dplyr::ungroup() %>%
                        dplyr::select(`Query.ID`) %>% 
                        dplyr::mutate(Tongue="induced")), by='Query.ID') %>%
-  full_join(bind_rows(read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>%
+  full_join(bind_rows(read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>%
                         dplyr::group_by(`Query.ID`) %>% 
                         dplyr::slice(1) %>% 
                         dplyr::ungroup() %>%
                         dplyr::select(`Query.ID`) %>% 
                         dplyr::mutate(Vagina="repressed"),
-                    read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>%
+                    read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>%
                       dplyr::group_by(`Query.ID`) %>% 
                       dplyr::slice(1) %>% 
                       dplyr::ungroup() %>%
                       dplyr::select(`Query.ID`) %>% 
                       dplyr::mutate(Vagina="induced")), by='Query.ID') %>%
-  left_join(bind_rows(read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3),
-          read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3),
-          read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2),
-          read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3),
-          read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3),
-          read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3)) %>%
+  left_join(bind_rows(read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3),
+          read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3),
+          read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2),
+          read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3),
+          read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3),
+          read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3)) %>%
   arrange(desc(Bit.Score)) %>%
   dplyr::group_by(`Query.ID`) %>% 
     dplyr::slice(1) %>% 
     dplyr::ungroup() %>%
     dplyr::select(`Query.ID`, Mouse.Gene.Name, Gene.description))
 
-write_tsv(Mouse_de, file.path(FigFolder, 'mouse_de.tsv') )     
+write_tsv(Mouse_de, ffFigFolder('mouse_de.tsv') )     
 
-Repressed <- list(Kidney=read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
-                  Tongue=read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2) %>% `$`(`Query.ID`) %>% unique(),
-                  Vagina=read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique())
-
-
-venn.diagram(Repressed, file=file.path(FigFolder, "Repressed_venn.png"), euler.d=FALSE, scaled = FALSE, sub="83 Manduca genes repressed during infection with mouse homologs", imagetype = 'png')
-
-venn.diagram(Repressed, file=file.path(FigFolder, "Repressed_unlabelled.png"), euler.d=TRUE, scaled = TRUE, imagetype = 'png', cex=0, cat.cex=0, fill = myCol, height = 4, width = 4, resolution = 72, units='in')
-
-Induced <- list(Kidney=read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
-                  Tongue=read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
-                  Vagina=read_excel(file.path(rna_seq_folder, "Mouse", "WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique())
-
-venn.diagram(Induced, file=file.path(FigFolder, "Induced_venn.png"), euler.d=FALSE, scaled = FALSE, sub="97 Manduca genes induced during infection with mouse homologs", imagetype = 'png')
-
-venn.diagram(Induced, file=file.path(FigFolder, "Induced_unlabelled.png"), euler.d=TRUE, scaled = TRUE, imagetype = 'png', cex=0, cat.cex=0, fill = myCol, height = 4, width = 4, resolution = 72, units='in')
+Repressed <- list(Kidney=read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
+                  Tongue=read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2) %>% `$`(`Query.ID`) %>% unique(),
+                  Vagina=read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique())
 
 
-# induced
-#read_excel("/Users/heo3/BTSync/Projects/Steph/Mouse/WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx", sheet=3) %>% select(
-  #semi_join(read_excel("/Users/heo3/BTSync/Projects/Steph/Mouse/WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx", sheet=3), by='Query.ID') %>%
-  #semi_join(read_excel("/Users/heo3/BTSync/Projects/Steph/Mouse/WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx", sheet=3), by='Query.ID') %>% dplyr::group_by(`Query.ID`) %>% dplyr::slice(1) %>% dplyr::ungroup() 
+venn.diagram(Repressed, file=ffFigFolder("Repressed_venn.png"), euler.d=FALSE, scaled = FALSE, sub="83 Manduca genes repressed during infection with mouse homologs", imagetype = 'png')
+
+venn.diagram(Repressed, file=ffFigFolder("Repressed_unlabelled.png"), euler.d=TRUE, scaled = TRUE, imagetype = 'png', cex=0, cat.cex=0, fill = myCol, height = 4, width = 4, resolution = 72, units='in')
+
+Induced <- list(Kidney=read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
+                  Tongue=read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
+                  Vagina=read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique())
+
+venn.diagram(Induced, file=ffFigFolder("Induced_venn.png"), euler.d=FALSE, scaled = FALSE, sub="97 Manduca genes induced during infection with mouse homologs", imagetype = 'png')
+
+venn.diagram(Induced, file=ffFigFolder("Induced_unlabelled.png"), euler.d=TRUE, scaled = TRUE, imagetype = 'png', cex=0, cat.cex=0, fill = myCol, height = 4, width = 4, resolution = 72, units='in')
      
-mRNAs <- read_tsv(pipe(paste("grep", "mRNA", file.path(rna_seq_folder, "Mappings/ms_ogs.gff"), "|", "cut", "-f", "9")), col_names = c("attributes"), comment="#")  %>%
+mRNAs <- read_tsv(pipe(paste("grep", "mRNA", ffMappingsFolder("ms_ogs.gff"), "|", "cut", "-f", "9")), col_names = c("attributes"), comment="#")  %>%
   mutate(Name=str_extract(attributes, "(?<=Name=)[^;]+"), ID=str_extract(attributes, "(?<=ID=)[^;]+")) %>% select(-attributes)
 
-all_complete <- read_tsv(file.path(rna_seq_folder, "Results", "tables", "Uninfectedvshog1.complete.txt")) %>% select(Id, Uninfectedvshog1_FC=log2FoldChange, Uninfectedvshog1_padj=padj) %>% full_join(read_tsv(file.path(rna_seq_folder, "Results", "tables", "WTvshog1.complete.txt")) %>% select(Id, WTvshog1_FC=log2FoldChange, WTvshog1_padj=padj)) %>%
-  full_join(read_tsv(file.path(rna_seq_folder, "Results", "tables", "WTvsUninfected.complete.txt")) %>% select(Id, WTvsUninfected_FC=log2FoldChange, WTvsUninfected_padj=padj)) %>% filter(Uninfectedvshog1_padj<=0.1 | WTvshog1_padj<=0.1 | WTvsUninfected_padj <=0.1) 
+all_complete <- read_tsv(ffResultsFolder("tables", "Uninfectedvshog1.complete.txt")) %>% select(Id, Uninfectedvshog1_FC=log2FoldChange, Uninfectedvshog1_padj=padj) %>% full_join(read_tsv(ffResultsFolder("tables", "WTvshog1.complete.txt")) %>% select(Id, WTvshog1_FC=log2FoldChange, WTvshog1_padj=padj)) %>%
+  full_join(read_tsv(ffResultsFolder("tables", "WTvsUninfected.complete.txt")) %>% select(Id, WTvsUninfected_FC=log2FoldChange, WTvsUninfected_padj=padj)) %>% filter(Uninfectedvshog1_padj<=0.1 | WTvshog1_padj<=0.1 | WTvsUninfected_padj <=0.1) 
 
 all_de <- mRNAs %>% right_join(all_complete, by=c("ID"="Id")) %>% select(-ID) %>%
   mutate(WTvshog1_padj=ifelse(WTvshog1_padj<.1, WTvshog1_padj, NA_character_),
          Uninfectedvshog1_padj=ifelse(Uninfectedvshog1_padj<.1, Uninfectedvshog1_padj, NA_character_),
          WTvsUninfected_padj=ifelse(WTvsUninfected_padj<.1, WTvsUninfected_padj, NA_character_))
 
-all_de <- read_tsv(file.path(rna_seq_folder, "Results", "tables", "WTvsUninfected.up.txt")) %>% bind_rows(read_tsv(file.path(rna_seq_folder, "Results", "tables", "WTvsUninfected.down.txt")) ) %>%
+all_de <- read_tsv(ffResultsFolder("tables", "WTvsUninfected.up.txt")) %>% bind_rows(read_tsv(ffResultsFolder("tables", "WTvsUninfected.down.txt")) ) %>%
   left_join(mRNAs, by=c("Id"="ID")) %>%
   select(Name, log2FoldChange, padj)
 
 all_de[heatmap$rowInd,]
-write_tsv(all_de[heatmap$rowInd,], file.path(FigFolder, "all_de.tsv"), na="")
+write_tsv(all_de[heatmap$rowInd,], ffFigFolder("all_de.tsv"), na="")
 ```
