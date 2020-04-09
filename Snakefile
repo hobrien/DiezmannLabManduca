@@ -11,7 +11,7 @@ include: "config.py"
 rule all:
     input:
         "R/BamQC.pdf",
-        "R/Results.pdf",
+        "R/Results.html",
         "Results/ManducaInfection_report.html",
         "Results/sequences/TransitiveDiffs.fa"
         
@@ -314,7 +314,7 @@ rule de_report:
     input:
         expand("Results/tables/{comparison}.{direction}.txt", comparison=comparisons, direction=['up', 'down'])
     output:
-        "R/Results.pdf",
+        "R/Results.html",
         "Results/tables/TransitiveDiffs.txt"
     params:
          num_cores = 1
