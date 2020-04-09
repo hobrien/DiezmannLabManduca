@@ -1,4 +1,4 @@
-# DiezmannLabManduca
+# Tobacco Hornworm as a novel host model for the study of fungal virulence and drug efficacy
 
 - Scripts and Workflows used for the analyses in Lyons et al. 2019. The little caterpillar that could – Tobacco Hornworm (Manduca sexta) caterpillars as a novel host model for the study of fungal virulence and drug efficacy. [bioRxiv](https://www.biorxiv.org/content/10.1101/693226v1)
 
