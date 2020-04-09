@@ -16,6 +16,7 @@ vignettes/*.pdf
 
 .Rproj.user
 *.rda
+*.Rhistory
 
 # html output from knitR
 R/*.html
@@ -41,17 +42,27 @@ Python/.ipynb_checkpoints/*
 
 # Results folders
 Results/*
+Manduca/Figures/*
 FastQC/*
 Mappings/*
 Tables/*
+Mouse/*
+
 
 # Genome Scale files
 Data/HRC.r1-1.GRCh37.wgs.mac5.sites.tab
+Reference/
 
-# Count data
+# Raw data
 Counts/*
+Manduca/DataFiles/*
+*.fq.gz
 
 # Shinyapp.io info
 Shiny/GENEX-FB2/Data
 Shiny/GENEX-FB2/rsconnect
 
+
+
+
+SARTools/
