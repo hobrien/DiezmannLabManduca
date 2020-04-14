@@ -9,9 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-
 knitr::opts_chunk$set(message=FALSE)
-
 library(nord)
 library(RColorBrewer)
 library(survminer)
@@ -27,16 +25,13 @@ library(VennDiagram)
 library(tidyverse)
 library(patchwork)
 library(folderfun)
-
 setff("FigFolder", file.path(Sys.getenv("StephRNAseq"), "Manduca", "Figures", "R_Figures"))
 setff("PanelFolder", file.path(Sys.getenv("StephRNAseq"), "Manduca", "Figures", "R_Figures", "Panels"))
 setff("DataFolder", file.path(Sys.getenv("StephRNAseq"), "Manduca", "DataFiles"))
 setff("MappingsFolder", file.path(Sys.getenv("StephRNAseq"), "Mappings"))
 setff("ResultsFolder", file.path(Sys.getenv("StephRNAseq"), "Results"))
 setff("MouseFolder", file.path(Sys.getenv("StephRNAseq"), "Mouse"))
-
 source(file.path(Sys.getenv("StephRNAseq"), "Scripts", "FormatGGplot.R"))
-
 convert_srv_data <- function(data_raw) {
  data_raw %>% mutate(futime=as.integer(case_when(Day2 == 1 ~ 1,
                                                          Day2 == 1 ~ 2,
@@ -45,13 +40,11 @@ convert_srv_data <- function(data_raw) {
                              fustat=as.integer(ifelse(is.na(Day4) |
                                                       Day4==1, 1, 0)))
 }
-
 palette <- brewer.pal("Greys", n=9)
 color.background = palette[2]
 color.grid.major = palette[3]
 color.axis.text = palette[6]
 color.axis.title = palette[7]
-
 my_theme <- theme(axis.title=element_text(size=8, colour=color.axis.title),
                   axis.text=element_text(size=6, colour=color.axis.text),
                   axis.ticks=element_line(size=.25, colour = color.grid.major),
@@ -69,7 +62,6 @@ my_theme <- theme(axis.title=element_text(size=8, colour=color.axis.title),
                   legend.position='bottom'
                   
                           )
-
 draw_srv_plot <- function(fit1, labels, title, colours, legend_rows){
    srv_theme <- my_theme+theme(panel.grid.major=element_blank())
    ggsurvplot(fit1, data = data_t, legend='bottom',
@@ -80,23 +72,21 @@ draw_srv_plot <- function(fit1, labels, title, colours, legend_rows){
             palette=colours,
             ggtheme=srv_theme) + 
     guides(colour = guide_legend(nrow = legend_rows))
-
 }
+
+load(ffResultsFolder("ManducaInfection.RData"))
 ```
 
 
 # Fig.1 - M. sexta caterpillars are susceptible to Candida albicans
 
-## 1a - Dose-response curves of lab strains at 25˚C
+## 1c - Dose-response curves of lab strains at 25˚C
 
 ```{r DRC_lab_strains_25C}
 drc_survival_25C <- read_tsv(ffDataFolder("drc_survival_25C.txt"))
-
 make_surv_plot <- function(data_t, my_title) {
-
  surv_object <- Surv(time = data_t$futime, 
                      event = data_t$fustat)
-
  fit1 <- survfit(Surv(time = data_t$futime, 
                      event = data_t$fustat) ~ Treatment, data = data_t)
  labels <- str_remove(names(fit1$strata), 'Treatment=')
@@ -104,634 +94,167 @@ make_surv_plot <- function(data_t, my_title) {
  colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
   draw_srv_plot(fit1, labels, my_title, colours, 1)
 }
-
-
 # YSD89
-
 data_t <- filter(drc_survival_25C, Strain == 'YSD89') %>% convert_srv_data()
-
 (YSD89_survival_25C_plot <- make_surv_plot(data_t, "SN95"))
    
 ggsave(ffPanelFolder("YSD89_survival_25C.pdf"), plot=YSD89_survival_25C_plot$plot, height=2.5, width=4, units="in")
-
-
 # YSD85
 data_t <- filter(drc_survival_25C, Strain == 'YSD85') %>% convert_srv_data()
-
 (YSD85_survival_25C_plot <- make_surv_plot(data_t, "SC5314"))
-
 ggsave(ffPanelFolder("YSD85_survival_25C.pdf"), plot=YSD85_survival_25C_plot$plot, height=2.5, width=4, units="in")
-
 ```
 
-## 1b - C. albicans mutants survival at 25C
+## 1d - C. albicans mutants survival at 25C
 
 ```{r Mutants_25C}
 mutant_survival_25C <- read_tsv(ffDataFolder("mutant_survival_25C.txt"))
-
 make_surv_plot <- function(data_t) {
-
  surv_object <- Surv(time = data_t$futime, 
                      event = data_t$fustat)
-
  fit1 <- survfit(Surv(time = data_t$futime, 
                      event = data_t$fustat) ~ Genotype, data = data_t)
-
  labels <- str_remove(names(fit1$strata), 'Genotype=')
  title <- ''
  colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
  draw_srv_plot(fit1, labels, title, colours, 2)
 }
-
-
 #mutant_survival_25C %>% count(Genotype)
-
 # ahr1
-
 data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') | 
                    str_detect(Genotype, 'ahr1')) %>% 
   mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>%
   convert_srv_data()
-
 (ahr1_survival_25C_plot <- make_surv_plot(data_t))
    
 ggsave(ffPanelFolder("ahr1_survival_25C.pdf"), plot=ahr1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
-
 # pair-wise comparison with wild type to assess significance
 #data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'ahr1/ahr1::AHR1')) %>% 
 #  convert_srv_data()
-
 #(ahr1_survival_25C_plot <- make_surv_plot(data_t))
-
-
 # cka2
-
 data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') | 
                    str_detect(Genotype, 'cka2')) %>% 
   mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>% convert_srv_data()
-
 (cka2_survival_25C_plot <- make_surv_plot(data_t))
    
 ggsave(ffPanelFolder("cka2_survival_25C.pdf"), plot=cka2_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
-
 #pair-wise comparison with wild type to assess significance
 #data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'cka2/cka2')) %>% #convert_srv_data()
-
 #(cka2_survival_25C_plot <- make_surv_plot(data_t))
-
-
 # hog1
-
 data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') | 
                    str_detect(Genotype, 'hog1')) %>% 
   mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>% convert_srv_data()
-
 (hog1_survival_25C_plot <- make_surv_plot(data_t))
    
 ggsave(ffPanelFolder("hog1_survival_25C.pdf"), plot=hog1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
-
 #pair-wise comparison with wild type to assess significance
 #data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'hog1/hog1::HOG1')) %>% #convert_srv_data()
-
 #(hog1_survival_25C_plot <- make_surv_plot(data_t))
-
-
-
 combined <- (YSD89_survival_25C_plot$plot | YSD85_survival_25C_plot$plot) / (hog1_survival_25C_plot$plot | cka2_survival_25C_plot$plot | ahr1_survival_25C_plot$plot )
-
 ggsave(ffPanelFolder("Fig.1_survival_25.pdf"), plot=combined, height=5, width=8, units="in")
 ```
 
 
-## 1c - Weight gain at 25˚C  and 37˚C
-- growth is slightly slower at 37 deg (p=0.022)
-
-```{r Weight_25_30_37}
-colour1 <- calc_pal()(12)[1]
-colour2 <- calc_pal()(12)[3]
-
-weight_25_versus_37C <- read_tsv(ffDataFolder("25_versus_37_weight.txt"))
-
-weight_25_versus_37C <- weight_25_versus_37C %>% 
-    mutate(starting_weight=Day1) %>%
-    gather('Day', 'Weight', starts_with('Day')) %>%
-  mutate(Animal=paste0(Temperature, Experimentalist, Animal),
-         Temperature=factor(Temperature),
-         weight_change=(Weight-starting_weight)/starting_weight*100,
-         Day=as.numeric(str_remove(Day, 'Day')))
-
-lm_fit <- lme(weight_change ~ Day + Day:Temperature, random=~1|Animal, data=weight_25_versus_37C, method='ML')
-lm_fit2 <- lme(weight_change ~ Day, random=~1|Animal, data=weight_25_versus_37C, method='ML')
-anova(lm_fit, lm_fit2)
-
-
-(weight_25_versus_37C_plot <- weight_25_versus_37C %>%  ggplot(aes(x=as.numeric(str_remove(Day, 'Day')), y=weight_change, colour=Temperature)) +
-  #geom_smooth(method='lm') +
-  geom_line(aes(group=Animal), alpha=1) +
-  #scale_x_continuous(limits=c(1,4), expand=expand_scale(mult = 0, add = 0)) +
-  ylab("% Weight Change") +
-  xlab("") +
-  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-  #scale_y_continuous(limits=c(0,12)) +
-  scale_colour_manual(values=c(colour1, colour2)) +
-  facet_grid(~ Temperature) + 
-  my_theme)
-
-ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_25_versus_37C_plot, height=2.5, width=8, units="in")
-```
-
-## 1d - Survival and weight at 37˚C
+# Fig 2 - Survival and weight at 37˚C
+## 2a/2b - WT strain
 
 ```{r Survival_weight_37C}
-
 drc_survival_weight_37C <- read_tsv(ffDataFolder("drc_survival_weight_37C.txt"))
-
 drc_weight_37C <- drc_survival_weight_37C %>% filter(Category == 'Weight') %>%
   mutate(starting_weight=Day1) %>%
   gather('Day', 'Weight', starts_with('Day')) %>%
   mutate(Animal=paste(Pot, Treatment, Replicate, sep='-'),
          Treatment=factor(Treatment),
-         weight_change=(Weight-starting_weight)/starting_weight*100) 
-
+         weight_change=(Weight-starting_weight)/starting_weight*100,
+         Day=as.numeric(str_remove(Day, 'Day'))) 
 (drc_weight_37C_plot <- drc_weight_37C %>% 
   ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=Animal)) +
     geom_line(size=.25) +
     geom_point(size=.5) +
+    facet_wrap(~ Treatment) +
     my_theme +
-    theme(legend.position='bottom',
-          axis.title.x=element_blank()) +
+    theme(legend.position='bottom') +
     ylab("% Weight Change") +
+    xlab("Day") +
     scale_colour_manual(name="SC5314",
-                        values=c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])) +
-    #scale_y_continuous(limits=c(0,12)) +
-    facet_wrap(~ Treatment))
-
+                        values = c(calc_pal()(12)[1:3],
+                                   calc_pal()(12)[5:7]))
+    )
 make_surv_plot <- function(data_t, my_title) {
-
  surv_object <- Surv(time = data_t$futime, 
                      event = data_t$fustat)
-
  fit1 <- survfit(Surv(time = data_t$futime, 
                      event = data_t$fustat) ~ Treatment, data = data_t)
-
  labels <- str_remove(names(fit1$strata), 'Treatment=')
  colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
  draw_srv_plot(fit1, labels, my_title, colours, 1)
 }
-
-
 data_t <- drc_survival_weight_37C %>% 
   filter(Category == 'Survival') %>% 
 #  mutate(Genotype=ifelse(is.na(Genotype), "PBS", Treatment),
 #         Genotype=relevel(factor(Genotype), ref='WT')) %>%
   convert_srv_data()
-
 (drc_survival_37C <- make_surv_plot(data_t, "SC5314"))
-
 ggsave(ffFigFolder("drc_survival_weight_37C.pdf"), plot=drc_survival_37C$plot, height=2.5, width=4, units="in")
-
-drc_weight_37C <- drc_weight_37C %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
-                                            Treatment=relevel(factor(Treatment), ref='PBS'))
-
+drc_weight_37C <- drc_weight_37C %>% mutate(Treatment=relevel(factor(Treatment), ref='PBS'))
 mod_37 <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_37C,  Day < 4 & !is.na(Weight)))
 summary(mod_37)
-
 ```
 
 
-## 1e - Survival and weight during infections with hog1∆/∆ mutant
+## 2c/2d - hog1∆/∆ mutant
 
 ```{r hog1_mutant_37C}
-
 hog1_weight_survival_37C <- read_tsv(ffDataFolder("hog1_weight_survival_37C.txt"))
-
 hog1_weight_37C <- hog1_weight_survival_37C %>% filter(Category == 'Weight') %>%
   rownames_to_column() %>%
   mutate(starting_weight=Day1) %>%
   gather('Day', 'Weight', starts_with('Day')) %>% 
   mutate(Genotype=relevel(factor(Genotype), ref='WT'),
-         weight_change=(Weight-starting_weight)/starting_weight*100)
-
+         weight_change=(Weight-starting_weight)/starting_weight*100,
+         Day = as.numeric(str_remove(Day, 'Day')))
 (hog1_weight_37C_plot <- hog1_weight_37C %>%
   ggplot(aes(x=Day, y=weight_change, colour=Genotype, group=rowname)) +         
     geom_line(size=.25) +
     geom_point(size=.5) +
     my_theme +
-    theme(legend.position='bottom',
-          axis.title.x=element_blank()) +
+    theme(legend.position='bottom') +
     ylab("% Weight Change") +
     scale_colour_manual(name="",
                         values=c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])) +
-    #scale_y_continuous(limits=c(0,12)) +
     facet_wrap(~ Genotype))
-
 make_surv_plot <- function(data_t, my_title) {
-
  surv_object <- Surv(time = data_t$futime, 
                      event = data_t$fustat)
-
  fit1 <- survfit(Surv(time = data_t$futime, 
                      event = data_t$fustat) ~ Genotype, data = data_t)
-
  labels <- str_remove(names(fit1$strata), 'Genotype=')
  title <- ''
  colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
  draw_srv_plot(fit1, labels, title, colours, 1)
 }
-
-
 data_t <- hog1_weight_survival_37C %>% 
   filter(Category == 'Survival') %>%
   mutate(Genotype=ifelse(is.na(Genotype), "PBS", Genotype),
          Genotype=relevel(factor(Genotype), ref='WT')) %>%
   convert_srv_data()
-
 (hog1_survival_plot <- make_surv_plot(data_t, ""))
-
-
 ggsave(ffPanelFolder("hog1_survival_37C.pdf"), plot=hog1_survival_plot$plot, height=2.5, width=4, units="in")
-
 combined2 <- drc_survival_37C$plot + drc_weight_37C_plot + hog1_survival_plot$plot + hog1_weight_37C_plot + plot_layout(ncol = 2, heights = c(2, 2))
-
 ggsave(ffPanelFolder("Fig.2_survival_37.pdf"), plot=combined2, height=7, width=8, units="in")
-
-hog1_weight_37C <- hog1_weight_37C %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
-                                            Genotype=relevel(factor(Genotype), ref='WT'))
+hog1_weight_37C <- hog1_weight_37C %>% mutate(Genotype=relevel(factor(Genotype), ref='WT'))
 mod_hog1 <- lme(Weight ~ Day + Genotype:Day, random= ~1|rowname, data=filter(hog1_weight_37C,  Day < 4 & !is.na(Weight)))
 summary(mod_hog1)
 ```
 
+# Fig 3 - Fungal burden in caterpillar feces and hemolymph
 
-## 1f - Heat-killed C. albicans at 37C
-
-```{r Heat_killed_37C}
-
-heat_killed_weight <- read_tsv(ffDataFolder("heat_killed_weight.txt")) %>%
-    rownames_to_column() %>%
-    mutate(starting_weight=Day1) %>%
-    gather('Day', 'Weight', starts_with('Day')) %>% 
-    mutate(Temperature=factor(Treatment),
-           weight_change=(Weight-starting_weight)/starting_weight*100,
-           Day=as.numeric(str_remove(Day, 'Day')))
-
-lm_fit <- lme(weight_change ~ Day + Day:Treatment, random=~1|rowname, data=filter(heat_killed_weight, Treatment != 'alive'), method='ML')
-
-lm_fit2 <- lme(weight_change ~ Day, random=~1|rowname, data=filter(heat_killed_weight, Treatment != 'alive'), method='ML')
-
-anova(lm_fit, lm_fit2)
-
-(heat_killed_weight_plot <- heat_killed_weight %>% 
-  ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=rowname)) +
-  geom_line( alpha=.2) +
-  scale_x_continuous(limits=c(1,2), expand=expand_scale(mult = 0, add = 0)) +
-  ylab("% Weight Change") +
-  xlab("") +
-  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-  scale_colour_manual(name="Treatment",
-                        values=c(calc_pal()(12)[1:2],calc_pal()(12)[5:7])) +
-  my_theme+
-  facet_wrap(~ Treatment)
-)
-
-heat_killed_survival <- read_tsv(ffDataFolder("heat_killed_survival.txt"))
-
-convert_srv_data_2day <- function(data_raw) {
- data_raw %>% mutate(futime=as.integer(case_when(Day2 == 1 ~ 1,
-                                                         TRUE == 1 ~ 2)),
-                             fustat=as.integer(ifelse(is.na(Day2) |
-                                                      Day2==1, 1, 0)))
-}
-
-make_surv_plot <- function(data_t, my_title) {
-
- surv_object <- Surv(time = data_t$futime, 
-                     event = data_t$fustat)
-
- fit1 <- survfit(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
-
- colours <- c(calc_pal()(12)[1:2],calc_pal()(12)[5:7])
- title <- "Treatment"
- labels <- str_remove(names(fit1$strata), 'Treatment=')
- draw_srv_plot(fit1, labels, title, colours, 1)
-}
-
-
-data_t <- heat_killed_survival %>%  convert_srv_data_2day()
-
-(heat_killed_survival_plot <- make_surv_plot(data_t, ""))
-
-ggsave(ffPanelFolder("heat_killed_survival_plot.pdf"), plot=heat_killed_survival_plot$plot, height=2.5, width=4, units="in")
-
-combined3 <-  heat_killed_survival_plot$plot | heat_killed_weight_plot
-
-ggsave(ffPanelFolder("Fig.S2_heat_killed_combined.pdf"), plot=combined3, height=3, width=8, units="in")
-
-heat_killed_weight <- heat_killed_weight %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
-                                            Treatment=relevel(factor(Treatment), ref='PBS'))
-mod_hog1 <- lme(Weight ~ Day + Treatment:Day, random= ~1|rowname, data=filter(heat_killed_weight,  Day < 4 & !is.na(Weight)))
-summary(mod_hog1)
-
-```
-
-
-# Fig.2 - M. sexta caterpillars' susceptibility to other yeast species
-
-## 2a - Survival of infection with six different yeast species
-
-```{r DRC_survival_yeast_species}
-
-make_surv_plot <- function(data_t, my_colours) {
-
- surv_object <- Surv(time = data_t$futime, 
-                     event = data_t$fustat)
-
- fit1 <- survfit(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
- labels <- str_remove(names(fit1$strata), 'Treatment=')
- title <- 'Treatment'
- draw_srv_plot(fit1, labels, title, my_colours, 2)
-}
-
-drc_survival_species <- read_tsv(ffDataFolder("drc_survival_species.txt"))
-
-# Saccharomyces_cerevisiae
-
-data_t <- filter(drc_survival_species, Species == 'Saccharomyces_cerevisiae') %>% convert_srv_data()
-
-(drc_survival_sc_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
-   
-ggsave(ffPanelFolder("drc_survival_sc.png"), plot=drc_survival_sc_plot$plot, bg="transparent")
-
-# Metschnikowia_pulcherrima
-
-data_t <- filter(drc_survival_species, Species == 'Metschnikowia_pulcherrima') %>% convert_srv_data()
-
-(drc_survival_mp_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[5])))
-   
-ggsave(ffPanelFolder("drc_survival_mp.png"), plot=drc_survival_mp_plot$plot, bg="transparent")
-
-# Cryptococcus_neoformans
-
-data_t <- filter(drc_survival_species, Species == 'Cryptococcus_neoformans') %>% convert_srv_data()
-
-(drc_survival_cn_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
-   
-ggsave(ffPanelFolder("drc_survival_cn.png"), plot=drc_survival_cn_plot$plot, bg="transparent")
-
-# Candida_glabrata 
-
-data_t <- filter(drc_survival_species, Species == 'Candida_glabrata') %>% convert_srv_data()
-
-(drc_survival_cg_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
-   
-ggsave(ffPanelFolder("drc_survival_cg.png"), plot=drc_survival_cg_plot$plot, bg="transparent")
-
-# Candida_auris 
-
-data_t <- filter(drc_survival_species, Species == 'Candida_auris') %>% convert_srv_data()
-
-(drc_survival_cau_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
-   
-ggsave(ffPanelFolder("drc_survival_cau.png"), plot=drc_survival_cau_plot$plot, bg="transparent")
-
-# Candida_albicans
-
-data_t <- filter(drc_survival_species, Species == 'Candida_albicans') %>% convert_srv_data()
-
-(drc_survival_cab_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
-   
-ggsave(ffPanelFolder("drc_survival_cab.png"), plot=drc_survival_cab_plot$plot, bg="transparent")
-
-species_survival_combined <- (drc_survival_sc_plot$plot | drc_survival_mp_plot$plot) /
-                    (drc_survival_cn_plot$plot | drc_survival_cg_plot$plot) /
-                    (drc_survival_cau_plot$plot | drc_survival_cab_plot$plot) 
- 
-ggsave(ffPanelFolder("Fig.5a_species_survival_combined.pdf"), plot=species_survival_combined, width=8, height=7.5, units="in") 
-```
-
-## 2b - Weight changes during infection with six different yeast species
-
-```{r DRC_weight_yeast_species}
-
-drc_weight_species <-read_tsv(ffDataFolder("drc_weight_species.txt"))
-
-drc_weight_species <- drc_weight_species %>% 
-  mutate(starting_weight=Day1) %>%
-  gather('Day', 'Weight', starts_with('Day')) %>%
-  mutate(Animal=paste0(Pot, Treatment, Species),
-         Treatment=factor(Treatment),
-         Day=str_remove(Day, "Day"),
-         Species=str_replace(Species, "[a-z]+_", ". "),
-         weight_change=(Weight-starting_weight)/starting_weight*100)
-
-drc_weight_species %>% ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=Animal)) +
-    geom_line(size=.25) +
-    geom_point(size=.5) +
-    facet_grid(Species ~ Treatment) +
-    my_theme +
-    theme(legend.position='bottom',
-          axis.title.x=element_blank()) +
-    ylab("% Weight Change") +
-    scale_colour_manual(name="Cells per animal",
-                    values=c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])) +
-    #scale_y_continuous(limits=c(0,12)) +
-    theme(strip.text.y=element_text(face="italic"))
-
-ggsave(ffPanelFolder("Fig.5b_drc_weight_species.pdf"), height=8, units="in")
-
-drc_weight_species <- drc_weight_species %>% 
-  mutate(Species = relevel(factor(Species), ref='S. cerevisiae'),
-         Treatment = relevel(factor(Treatment), ref='PBS'),
-         Day = as.numeric(Day))
-
-
-# S. cerevisiae grows significantly slower at 10^6, 10^7 and 10^8
-mod_sc <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='S. cerevisiae' & Day<4 & !is.na(Weight)))
-summary(mod_sc)
-
-# C. albicans grows significantly slower at 10^5 and dies at higher concentrations
-mod_ca <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. albicans' & Day<4 & !is.na(Weight)))
-summary(mod_ca)
-
-# C. auris grows marginally slower at lower concentrations and significantly slower at 10^8 and 10^9
-mod_cau <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. auris' & Day<4 & !is.na(Weight)))
-summary(mod_cau)
-
-# C. glabrata grows marginally slower at lower concentrations and significantly slower at 10^7, 10^8 and 10^9
-mod_cg <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. glabrata' & Day<4 & !is.na(Weight)))
-summary(mod_cg)
-
-# C. neoformans grows significantly faster(!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
-mod_cn <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. neoformans' & Day<4 & !is.na(Weight)))
-summary(mod_cn)
-
-# C. neoformans grows significantly faster (hormesis!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
-mod_mp <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='M. pulcherrima' & Day<4 & !is.na(Weight)))
-summary(mod_mp)
-
-```
-
-# Fig.3 - Treatment with antifungal drugs cures caterpillars from fungal disease
-
-## 3a - Fluconazole treatment and weight
-
-```{r fluconazole_weight}
-
-fluconazole_weight <-read_tsv(ffDataFolder("fluconazole_weight.txt"))
-
-fluconazole_weight <- fluconazole_weight %>%
-  mutate(starting_weight=Day1) %>%
-  gather('Day', 'Weight', starts_with('Day')) %>%
-  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg' , '1 mg/kg' , '4 mg/kg',
-                                              '16 mg/kg' , '32 mg/kg' , '64 mg/kg',
-                                              'PBS')),
-         Day=as.numeric(str_remove(Day, "Day")),
-         weight_change=(Weight-starting_weight)/starting_weight*100)
-
-(fluconazole_weight_plot <- fluconazole_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
-    geom_line(size=.25, colour=calc_pal()(12)[1]) +
-    geom_point(size=.5, colour=calc_pal()(12)[1]) +
-    facet_grid(. ~ Treatment) +
-    my_theme +
-    theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
-    ylab("% Weight Change") +
-    scale_colour_manual(name="Fluconazole",
-                    values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
-    scale_x_continuous(breaks=c(1,2,3,4)))
-
-
-fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='64 mg/kg'))
-mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight)))
-summary(mod_flu)
-
-```
-
-
-## 3b - Fluconazole survival
-
-```{r fluconazole_survival}
-fluconazole_survival <-read_tsv(ffDataFolder("fluconazole_survival.txt"))
-
-make_surv_plot <- function(data_t, my_title) {
-
- surv_object <- Surv(time = data_t$futime, 
-                     event = data_t$fustat)
-
- fit1 <- survfit(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
- colours <- c(calc_pal()(12)[1:4],calc_pal()(12)[6:7],calc_pal()(12)[5])
- title <- "Treatment"
- labels <- str_remove(names(fit1$strata), 'Treatment=')
- draw_srv_plot(fit1, labels, title, colours, 2)
-
-}
-
-
-# YSD89
-
-data_t <- fluconazole_survival %>% convert_srv_data()
-
-(fluconazole_plot <- make_surv_plot(data_t, ""))
-
-# pair-wise comparison of survival relative to 0 Fluconazole
-
-data_t <- fluconazole_survival %>% 
- filter(Treatment %in% c('0 mg/kg', '64 mg/kg')) %>%
- convert_srv_data()
-
-(fluconazole_survival_plot <- make_surv_plot(data_t, ""))
-
-
-```
-
-## 3c - Caspofungin treatment and weight
-
-```{r caspofungin_weight}
-
-caspofungin_weight <-read_tsv(ffDataFolder("caspofungin_weight.txt"))
-
-caspofungin_weight <- caspofungin_weight %>%
-  mutate(starting_weight=Day1) %>%
-  gather('Day', 'Weight', starts_with('Day')) %>%
-  mutate(Treatment=factor(Treatment),
-         Day=as.numeric(str_remove(Day, "Day")),
-         weight_change=(Weight-starting_weight)/starting_weight*100)
-
-(caspofungin_weight_plot <- caspofungin_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
-    geom_line(size=.25, colour=calc_pal()(12)[1]) +
-    geom_point(size=.5, colour=calc_pal()(12)[1]) +
-    facet_grid(. ~ Treatment) +
-    my_theme +
-    theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
-    theme(legend.position='bottom') +
-    ylab("% Weight Change") +
-    scale_colour_manual(name="Fluconazole",
-                    values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
-    scale_x_continuous(breaks=c(1,2,3,4)))
-
-caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='4 mg/kg'))
-mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight)))
-
-summary(mod_cas)
-
-
-```
-
-
-## 3b - Caspofungin survival
-
-```{r caspofungin_survival}
-
-caspofungin_survival <-read_tsv(ffDataFolder("caspofungin_survival.txt"))
-
-make_surv_plot <- function(data_t, my_title) {
-
- surv_object <- Surv(time = data_t$futime, 
-                     event = data_t$fustat)
-
- fit1 <- survfit(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
-
- colours <- c(calc_pal()(12)[1:5])
- title <- "Treatment"
- labels <- str_remove(names(fit1$strata), 'Treatment=')
- draw_srv_plot(fit1, labels, title, colours, 2)
-}
-
-
-# YSD89
-
-data_t <- caspofungin_survival %>% convert_srv_data()
-
-(caspofungin_plot <- make_surv_plot(data_t, ""))
-
-drugs_combined <- (fluconazole_plot$plot | fluconazole_weight_plot) /
-                  (caspofungin_plot$plot | caspofungin_weight_plot)
-
-#drugs_combined <- (fluconazole_weight_plot | caspofungin_weight_plot) /
- #                 (fluconazole_plot$plot | caspofungin_plot$plot)
-
-ggsave(ffPanelFolder("Fig.4_drugs_combined.pdf"), plot=drugs_combined, height=6, width=8, units='in')
-
-
-data_t <- caspofungin_survival %>% 
- filter(Treatment %in% c('0 mg/kg', '4 mg/kg')) %>%
- convert_srv_data()
-
-(caspofungin_survival_plot <- make_surv_plot(data_t, ""))
-
-
-```
-
-
-# Fig. 4 - Fungal burden in caterpillar feces and hemolymph
-
-## 4a - Fungal burden in feces
+## 3a - Fungal burden in feces
 
 ```{r fungal_burden_feces}
 fungal_burden_feces <-read_tsv(ffDataFolder("fungal_burden_feces.txt"))
-
 (feces_plot <- fungal_burden_feces %>% 
   group_by(Pot, Treatment, Day) %>%
   summarise(CFU=mean(`CFU/g feces`)) %>%
@@ -751,16 +274,12 @@ fungal_burden_feces <-read_tsv(ffDataFolder("fungal_burden_feces.txt"))
           strip.text.x=element_text(size=8, colour=color.axis.title)) +
     #xlab('Day') +
     ylab('CFU/g feces'))
-
-
 ```
 
-## 4b - Fungal burden in hemolymph
+## 3b - Fungal burden in hemolymph
 
 ```{r fungal_burden_hemolymph}
-
 fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
-
 (lymph_plot <- fungal_burden_hemolymph %>% 
   dplyr::rename(CFU=`CFU/100 ul hemolymph`) %>%
   group_by(Pot, Treatment, Day) %>%
@@ -779,14 +298,12 @@ fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
           axis.title.x=element_blank()) +
     #xlab('Day') +
     ylab('CFU/100 ul hemolymph'))
-
 ```
 
-## 4c - Fungal burden and caterpillar weight
+## 3c - Fungal burden and caterpillar weight
 
 ```{r fungal_burden_weight}
 fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
-
 (weight_plot <- fungal_burden_weight %>% 
  gather('Day', 'Weight', starts_with('Day')) %>% #View()
   mutate(Treatment=factor(Treatment, levels=c("YSD883", "YSD89", "PBS")),
@@ -799,89 +316,236 @@ fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
     my_theme +
     theme(legend.position = 'none') +
     xlab('Day') )
-
 library(patchwork)
-
 combined_plot <- feces_plot / lymph_plot / weight_plot
 ggsave(ffPanelFolder("Fig.3_fungal_burden.pdf"), plot=combined_plot, height=8, units="in")
 ```
 
 
-# RNAseq
-## Library Size
-```{r}
+# Fig 4 - Treatment with antifungal drugs cures caterpillars from fungal disease
 
-#rna_seq_folder <- "/Users/heo3/BTSync/Projects/Steph"
-load(ffResultsFolder("ManducaInfection.RData"))
-#folder=file.path(rna_seq_folder, "Mappings")
-#conditions <- read_tsv(file.path(rna_seq_folder, "conditions.txt"))
-cov <- data.frame()
-for (file in dir(ffMappingsFolder(), '*cov.txt')) {
-  cov <- read_delim(ffMappingsFolder(file), "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
-    mutate(sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
-    rbind(cov)
+## 4a - Fluconazole survival
+
+```{r fluconazole_survival}
+fluconazole_survival <-read_tsv(ffDataFolder("fluconazole_survival.txt"))
+
+make_surv_plot <- function(data_t, my_title) {
+ surv_object <- Surv(time = data_t$futime, 
+                     event = data_t$fustat)
+ fit1 <- survfit(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+ colours <- c(calc_pal()(12)[1:4],calc_pal()(12)[6:7],calc_pal()(12)[5])
+ title <- "Treatment"
+ labels <- str_remove(names(fit1$strata), 'Treatment=')
+ draw_srv_plot(fit1, labels, title, colours, 2)
 }
+# YSD89
+data_t <- fluconazole_survival %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg', 'PBS'))) %>%
+  convert_srv_data()
+(fluconazole_plot <- make_surv_plot(data_t, ""))
 
-cov <- mutate(cov, Organism=ifelse(str_detect(X1, '^gi'), 'Manduca', 'Candida'))
-
-for (file in dir(ffMappingsFolder(), '*stats.txt')) {
-  temp <- read_csv(ffMappingsFolder(file))
-  colnames(temp)=c("x1")
-  cov <-filter(temp, str_detect(x1, "Unmapped reads")) %>% separate(x1, into=c("Organism", "X2", "X3")) %>% 
-    mutate(X1=NA, X4=NA, sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
-    rbind(cov) %>%
-    mutate(X2=as.integer(X2), X3=as.integer(X3), X4=as.integer(X4))
+# pair-wise comparison of survival relative to 0 Fluconazole
+concentrations <- c('1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg')
+plot_pair <- function(conc) {
+  data_t <- fluconazole_survival %>% 
+    filter(Treatment %in% c('0 mg/kg', conc)) %>%
+    convert_srv_data()
+  make_surv_plot(data_t, "")
 }
+lapply(concentrations, plot_pair)
+```
 
-LibraryInfo$SampleID
+## 4b - Fluconazole treatment and weight
 
-colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
-
-LibraryInfo <- LibraryInfo %>% arrange(condition)
-
-cov %>% group_by(Organism, sample) %>% 
-  summarise(total_reads=sum(as.integer(X3))) %>% 
-  full_join(LibraryInfo, by=c("sample" = "SampleID")) %>% 
-  mutate(sample=factor(sample, levels=LibraryInfo$SampleID)) %>%
-  filter(condition != 'hog1') %>%
-  ggplot(aes(x=sample, y=total_reads, fill=condition)) +
-    geom_bar(stat='identity', width=.5) +
-    facet_grid(Organism~., scales='free') +
+```{r fluconazole_weight}
+fluconazole_weight <-read_tsv(ffDataFolder("fluconazole_weight.txt"))
+fluconazole_weight <- fluconazole_weight %>%
+  mutate(starting_weight=Day1) %>%
+  gather('Day', 'Weight', starts_with('Day')) %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg' , '1 mg/kg' , '4 mg/kg',
+                                              '16 mg/kg' , '32 mg/kg' , '64 mg/kg',
+                                              'PBS')),
+         Day=as.numeric(str_remove(Day, "Day")),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
+(fluconazole_weight_plot <- fluconazole_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
+    geom_line(size=.25, colour=calc_pal()(12)[1]) +
+    geom_point(size=.5, colour=calc_pal()(12)[1]) +
+    facet_grid(. ~ Treatment) +
     my_theme +
-    scale_fill_manual(values=c(colours[1], colours[3]))
+    theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
+    ylab("% Weight Change") +
+    scale_colour_manual(name="Fluconazole",
+                    values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
+    scale_x_continuous(breaks=c(1,2,3,4)))
+fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='64 mg/kg'))
+mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight)))
+summary(mod_flu)
+```
 
-ggsave(ffFigFolder("chart1.pdf"))
+## 4c - Caspofungin survival
+
+```{r caspofungin_survival}
+caspofungin_survival <-read_tsv(ffDataFolder("caspofungin_survival.txt"))
+make_surv_plot <- function(data_t, my_title) {
+ surv_object <- Surv(time = data_t$futime, 
+                     event = data_t$fustat)
+ fit1 <- survfit(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+ colours <- c(calc_pal()(12)[1:5])
+ title <- "Treatment"
+ labels <- str_remove(names(fit1$strata), 'Treatment=')
+ draw_srv_plot(fit1, labels, title, colours, 2)
+}
+
+# pair-wise comparison of survival relative to 0 caspofungin
+concentrations <- c('1 mg/kg', '2 mg/kg', '4 mg/kg')
+plot_pair <- function(conc) {
+  data_t <- caspofungin_survival %>% 
+    filter(Treatment %in% c('0 mg/kg', conc)) %>%
+    convert_srv_data()
+  make_surv_plot(data_t, "")
+}
+lapply(concentrations, plot_pair)
+
+```
+## 4d - Caspofungin treatment and weight
+
+```{r caspofungin_weight}
+caspofungin_weight <-read_tsv(ffDataFolder("caspofungin_weight.txt"))
+caspofungin_weight <- caspofungin_weight %>%
+  mutate(starting_weight=Day1) %>%
+  gather('Day', 'Weight', starts_with('Day')) %>%
+  mutate(Treatment=factor(Treatment),
+         Day=as.numeric(str_remove(Day, "Day")),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
+(caspofungin_weight_plot <- caspofungin_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
+    geom_line(size=.25, colour=calc_pal()(12)[1]) +
+    geom_point(size=.5, colour=calc_pal()(12)[1]) +
+    facet_grid(. ~ Treatment) +
+    my_theme +
+    theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
+    theme(legend.position='bottom') +
+    ylab("% Weight Change") +
+    scale_colour_manual(name="Fluconazole",
+                    values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
+    scale_x_continuous(breaks=c(1,2,3,4)))
+caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='4 mg/kg'))
+mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight)))
+summary(mod_cas)
+
+
+# Combine Figures
+data_t <- caspofungin_survival %>% convert_srv_data()
+(caspofungin_plot <- make_surv_plot(data_t, ""))
+drugs_combined <- (fluconazole_plot$plot | fluconazole_weight_plot) /
+                  (caspofungin_plot$plot | caspofungin_weight_plot)
+
+ggsave(ffPanelFolder("Fig.4_drugs_combined.pdf"), plot=drugs_combined, height=6, width=8, units='in')
 
 ```
 
-## Overlap Upset
-```{r upset}
-#need a matrix with genes in rows and comparisons as columns
+# Fig.5 - M. sexta caterpillars' susceptibility to other yeast species
 
-DE <- read_tsv(ffResultsFolder("tables", "WTvsUninfected.up.txt")) %>% select(Id) %>% mutate(WTvsUninfected.up=1) %>%
-  full_join(read_tsv(ffResultsFolder("tables", "WTvsUninfected.down.txt")) %>% select(Id) %>% mutate(WTvsUninfected.down=1)) 
-
-DE[is.na(DE)]<-0
-pdf(ffFigFolder("chart2.pdf"), width=6, height=4)
-upset(data.frame(DE), nsets = 6)
-dev.off()
+```{r DRC_survival_yeast_species}
+make_surv_plot <- function(data_t, my_colours) {
+ surv_object <- Surv(time = data_t$futime, 
+                     event = data_t$fustat)
+ fit1 <- survfit(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+ labels <- str_remove(names(fit1$strata), 'Treatment=')
+ title <- 'Treatment'
+ draw_srv_plot(fit1, labels, title, my_colours, 2)
+}
+drc_survival_species <- read_tsv(ffDataFolder("drc_survival_species.txt"))
+# Saccharomyces_cerevisiae
+data_t <- filter(drc_survival_species, Species == 'Saccharomyces_cerevisiae') %>% convert_srv_data()
+(drc_survival_sc_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
+   
+ggsave(ffPanelFolder("drc_survival_sc.png"), plot=drc_survival_sc_plot$plot, bg="transparent")
+# Metschnikowia_pulcherrima
+data_t <- filter(drc_survival_species, Species == 'Metschnikowia_pulcherrima') %>% convert_srv_data()
+(drc_survival_mp_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[5])))
+   
+ggsave(ffPanelFolder("drc_survival_mp.png"), plot=drc_survival_mp_plot$plot, bg="transparent")
+# Cryptococcus_neoformans
+data_t <- filter(drc_survival_species, Species == 'Cryptococcus_neoformans') %>% convert_srv_data()
+(drc_survival_cn_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
+   
+ggsave(ffPanelFolder("drc_survival_cn.png"), plot=drc_survival_cn_plot$plot, bg="transparent")
+# Candida_glabrata 
+data_t <- filter(drc_survival_species, Species == 'Candida_glabrata') %>% convert_srv_data()
+(drc_survival_cg_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
+   
+ggsave(ffPanelFolder("drc_survival_cg.png"), plot=drc_survival_cg_plot$plot, bg="transparent")
+# Candida_auris 
+data_t <- filter(drc_survival_species, Species == 'Candida_auris') %>% convert_srv_data()
+(drc_survival_cau_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
+   
+ggsave(ffPanelFolder("drc_survival_cau.png"), plot=drc_survival_cau_plot$plot, bg="transparent")
+# Candida_albicans
+data_t <- filter(drc_survival_species, Species == 'Candida_albicans') %>% convert_srv_data()
+(drc_survival_cab_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
+   
+ggsave(ffPanelFolder("drc_survival_cab.png"), plot=drc_survival_cab_plot$plot, bg="transparent")
+species_survival_combined <- (drc_survival_sc_plot$plot | drc_survival_mp_plot$plot) /
+                    (drc_survival_cn_plot$plot | drc_survival_cg_plot$plot) /
+                    (drc_survival_cau_plot$plot | drc_survival_cab_plot$plot) 
+ 
+ggsave(ffPanelFolder("Fig.5a_species_survival_combined.pdf"), plot=species_survival_combined, width=8, height=7.5, units="in") 
 ```
 
-## Heatmap
-```{r heatmap}
+# Fig 6 - Weight changes during infection with six different yeast species
 
-vsd <- varianceStabilizingTransformation(out.DESeq2$dds, blind=FALSE)
-
-DE_vsd <- assay(vsd)[DE$Id,LibraryInfo[LibraryInfo$condition != 'hog1',]$SampleID]
-#colnames(DE_vsd) <- LibraryInfo[match(colnames(DE_vsd), LibraryInfo$SampleID),]$condition
-pdf(ffFigFolder("heatmap2.pdf"), width=8, height=8)
-heatmap <- heatmap.2(DE_vsd, cexCol=1, labRow = FALSE, trace = 'none', col=viridis(20)[10:20])
-dev.off()
+```{r DRC_weight_yeast_species}
+drc_weight_species <-read_tsv(ffDataFolder("drc_weight_species.txt"))
+drc_weight_species <- drc_weight_species %>% 
+  mutate(starting_weight=Day1) %>%
+  gather('Day', 'Weight', starts_with('Day')) %>%
+  mutate(Animal=paste0(Pot, Treatment, Species),
+         Treatment=factor(Treatment),
+         Day=str_remove(Day, "Day"),
+         Species=str_replace(Species, "[a-z]+_", ". "),
+         weight_change=(Weight-starting_weight)/starting_weight*100)
+drc_weight_species %>% ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=Animal)) +
+    geom_line(size=.25) +
+    geom_point(size=.5) +
+    facet_grid(Species ~ Treatment) +
+    my_theme +
+    theme(legend.position='bottom') +
+    ylab("% Weight Change") +
+    scale_colour_manual(name="Cells per animal",
+                    values=c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])) +
+    #scale_y_continuous(limits=c(0,12)) +
+    theme(strip.text.y=element_text(face="italic"))
+ggsave(ffPanelFolder("Fig.5b_drc_weight_species.pdf"), height=8, units="in")
+drc_weight_species <- drc_weight_species %>% 
+  mutate(Species = relevel(factor(Species), ref='S. cerevisiae'),
+         Treatment = relevel(factor(Treatment), ref='PBS'),
+         Day = as.numeric(Day))
+# S. cerevisiae grows significantly slower at 10^6, 10^7 and 10^8
+mod_sc <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='S. cerevisiae' & Day<4 & !is.na(Weight)))
+summary(mod_sc)
+# C. albicans grows significantly slower at 10^5 and dies at higher concentrations
+mod_ca <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. albicans' & Day<4 & !is.na(Weight)))
+summary(mod_ca)
+# C. auris grows marginally slower at lower concentrations and significantly slower at 10^8 and 10^9
+mod_cau <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. auris' & Day<4 & !is.na(Weight)))
+summary(mod_cau)
+# C. glabrata grows marginally slower at lower concentrations and significantly slower at 10^7, 10^8 and 10^9
+mod_cg <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. glabrata' & Day<4 & !is.na(Weight)))
+summary(mod_cg)
+# C. neoformans grows significantly faster(!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
+mod_cn <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. neoformans' & Day<4 & !is.na(Weight)))
+summary(mod_cn)
+# C. neoformans grows significantly faster (hormesis!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
+mod_mp <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='M. pulcherrima' & Day<4 & !is.na(Weight)))
+summary(mod_mp)
 ```
-## Overlap Venn Diagram
+
+# Fig 7 - Overlap Venn Diagram
 ```{r}
 myCol <- brewer.pal(3, "Pastel2")
-
 Mouse_de <- 
   read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>%
   dplyr::group_by(`Query.ID`) %>% 
@@ -930,41 +594,163 @@ Mouse_de <-
     dplyr::slice(1) %>% 
     dplyr::ungroup() %>%
     dplyr::select(`Query.ID`, Mouse.Gene.Name, Gene.description))
-
 write_tsv(Mouse_de, ffFigFolder('mouse_de.tsv') )     
-
 Repressed <- list(Kidney=read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
                   Tongue=read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=2) %>% `$`(`Query.ID`) %>% unique(),
                   Vagina=read_excel(ffMouseFolder("WTvsUninfected.down.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique())
-
-
 venn.diagram(Repressed, file=ffFigFolder("Repressed_venn.png"), euler.d=FALSE, scaled = FALSE, sub="83 Manduca genes repressed during infection with mouse homologs", imagetype = 'png')
-
 venn.diagram(Repressed, file=ffFigFolder("Repressed_unlabelled.png"), euler.d=TRUE, scaled = TRUE, imagetype = 'png', cex=0, cat.cex=0, fill = myCol, height = 4, width = 4, resolution = 72, units='in')
-
 Induced <- list(Kidney=read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_kidney.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
                   Tongue=read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_tongue.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique(),
                   Vagina=read_excel(ffMouseFolder("WTvsUninfected.up.ms2mouse.all_hits_VMB_minus_20_cutoff_E_vagina.xlsx"), sheet=3) %>% `$`(`Query.ID`) %>% unique())
-
 venn.diagram(Induced, file=ffFigFolder("Induced_venn.png"), euler.d=FALSE, scaled = FALSE, sub="97 Manduca genes induced during infection with mouse homologs", imagetype = 'png')
-
 venn.diagram(Induced, file=ffFigFolder("Induced_unlabelled.png"), euler.d=TRUE, scaled = TRUE, imagetype = 'png', cex=0, cat.cex=0, fill = myCol, height = 4, width = 4, resolution = 72, units='in')
-     
+```
+
+# Supplementary Figures
+## s1 - Weight gain at 25˚C  and 37˚C
+- growth is slightly slower at 37 deg (p=0.022)
+
+```{r Weight_25_30_37}
+colour1 <- calc_pal()(12)[1]
+colour2 <- calc_pal()(12)[3]
+weight_25_versus_37C <- read_tsv(ffDataFolder("25_versus_37_weight.txt"))
+weight_25_versus_37C <- weight_25_versus_37C %>% 
+    mutate(starting_weight=Day1) %>%
+    gather('Day', 'Weight', starts_with('Day')) %>%
+  mutate(Animal=paste0(Temperature, Experimentalist, Animal),
+         Temperature=factor(Temperature),
+         weight_change=(Weight-starting_weight)/starting_weight*100,
+         Day=as.numeric(str_remove(Day, 'Day')))
+lm_fit <- lme(weight_change ~ Day + Day:Temperature, random=~1|Animal, data=weight_25_versus_37C, method='ML')
+lm_fit2 <- lme(weight_change ~ Day, random=~1|Animal, data=weight_25_versus_37C, method='ML')
+anova(lm_fit, lm_fit2)
+(weight_25_versus_37C_plot <- weight_25_versus_37C %>%  ggplot(aes(x=as.numeric(str_remove(Day, 'Day')), y=weight_change, colour=Temperature)) +
+  geom_line(aes(group=Animal), alpha=1) +
+  ylab("% Weight Change") +
+  xlab("Day") +
+  guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+  scale_colour_manual(values=c(colour1, colour2)) +
+  facet_grid(~ Temperature) + 
+  my_theme)
+ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_25_versus_37C_plot, height=2.5, width=8, units="in")
+```
+
+## s2 - Heat-killed C. albicans at 37C
+
+```{r Heat_killed_37C}
+heat_killed_weight <- read_tsv(ffDataFolder("heat_killed_weight.txt")) %>%
+    rownames_to_column() %>%
+    mutate(starting_weight=Day1) %>%
+    gather('Day', 'Weight', starts_with('Day')) %>% 
+    mutate(Temperature=factor(Treatment),
+           weight_change=(Weight-starting_weight)/starting_weight*100,
+           Day=as.numeric(str_remove(Day, 'Day')))
+lm_fit <- lme(weight_change ~ Day + Day:Treatment, random=~1|rowname, data=filter(heat_killed_weight, Treatment != 'alive'), method='ML')
+lm_fit2 <- lme(weight_change ~ Day, random=~1|rowname, data=filter(heat_killed_weight, Treatment != 'alive'), method='ML')
+anova(lm_fit, lm_fit2)
+(heat_killed_weight_plot <- heat_killed_weight %>% 
+  ggplot(aes(x=Day, y=weight_change, colour=Treatment, group=rowname)) +
+  geom_line() +
+  scale_x_continuous(breaks = c(1,2)) +
+  ylab("% Weight Change") +
+  xlab("Day") +
+  scale_colour_manual(name="Treatment",
+                        values=c(calc_pal()(12)[1:2],calc_pal()(12)[5:7])) +
+  my_theme+
+  facet_wrap(~ Treatment)
+)
+heat_killed_survival <- read_tsv(ffDataFolder("heat_killed_survival.txt"))
+convert_srv_data_2day <- function(data_raw) {
+ data_raw %>% mutate(futime=as.integer(case_when(Day2 == 1 ~ 1,
+                                                         TRUE == 1 ~ 2)),
+                             fustat=as.integer(ifelse(is.na(Day2) |
+                                                      Day2==1, 1, 0)))
+}
+make_surv_plot <- function(data_t, my_title) {
+ surv_object <- Surv(time = data_t$futime, 
+                     event = data_t$fustat)
+ fit1 <- survfit(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+ colours <- c(calc_pal()(12)[1:2],calc_pal()(12)[5:7])
+ title <- "Treatment"
+ labels <- str_remove(names(fit1$strata), 'Treatment=')
+ draw_srv_plot(fit1, labels, title, colours, 1)
+}
+data_t <- heat_killed_survival %>%  convert_srv_data_2day()
+(heat_killed_survival_plot <- make_surv_plot(data_t, ""))
+ggsave(ffPanelFolder("heat_killed_survival_plot.pdf"), plot=heat_killed_survival_plot$plot, height=2.5, width=4, units="in")
+combined3 <-  heat_killed_survival_plot$plot | heat_killed_weight_plot
+ggsave(ffPanelFolder("Fig.S2_heat_killed_combined.pdf"), plot=combined3, height=3, width=8, units="in")
+heat_killed_weight <- heat_killed_weight %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
+                                            Treatment=relevel(factor(Treatment), ref='PBS'))
+mod_hog1 <- lme(Weight ~ Day + Treatment:Day, random= ~1|rowname, data=filter(heat_killed_weight,  Day < 4 & !is.na(Weight)))
+summary(mod_hog1)
+```
+
+
+## s3 - RNAseq Library Size
+```{r}
+cov <- data.frame()
+for (file in dir(ffMappingsFolder(), '*cov.txt')) {
+  cov <- read_delim(ffMappingsFolder(file), "\t", escape_double = FALSE, col_names = FALSE, trim_ws = TRUE) %>%
+    mutate(sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
+    rbind(cov)
+}
+cov <- mutate(cov, Organism=ifelse(str_detect(X1, '^gi'), 'Manduca', 'Candida'))
+for (file in dir(ffMappingsFolder(), '*stats.txt')) {
+  temp <- read_csv(ffMappingsFolder(file))
+  colnames(temp)=c("x1")
+  cov <-filter(temp, str_detect(x1, "Unmapped reads")) %>% separate(x1, into=c("Organism", "X2", "X3")) %>% 
+    mutate(X1=NA, X4=NA, sample=head(strsplit(file, '\\.')[[1]], 1)) %>%
+    rbind(cov) %>%
+    mutate(X2=as.integer(X2), X3=as.integer(X3), X4=as.integer(X4))
+}
+LibraryInfo$SampleID
+colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
+LibraryInfo <- LibraryInfo %>% arrange(condition)
+cov %>% group_by(Organism, sample) %>% 
+  summarise(total_reads=sum(as.integer(X3))) %>% 
+  full_join(LibraryInfo, by=c("sample" = "SampleID")) %>% 
+  mutate(sample=factor(sample, levels=LibraryInfo$SampleID)) %>%
+  filter(condition != 'hog1') %>%
+  ggplot(aes(x=sample, y=total_reads, fill=condition)) +
+    geom_bar(stat='identity', width=.5) +
+    facet_grid(Organism~., scales='free') +
+    my_theme +
+    scale_fill_manual(values=c(colours[1], colours[3]))
+ggsave(ffFigFolder("chart1.pdf"))
+```
+
+## s4 - Heatmap
+```{r heatmap}
+vsd <- varianceStabilizingTransformation(out.DESeq2$dds, blind=FALSE)
+
+#need a matrix with genes in rows and comparisons as columns
+DE <- read_tsv(ffResultsFolder("tables", "WTvsUninfected.up.txt")) %>% select(Id) %>% mutate(WTvsUninfected.up=1) %>%
+  full_join(read_tsv(ffResultsFolder("tables", "WTvsUninfected.down.txt")) %>% select(Id) %>% mutate(WTvsUninfected.down=1)) 
+DE[is.na(DE)]<-0
+
+DE_vsd <- assay(vsd)[DE$Id,LibraryInfo[LibraryInfo$condition != 'hog1',]$SampleID]
+#colnames(DE_vsd) <- LibraryInfo[match(colnames(DE_vsd), LibraryInfo$SampleID),]$condition
+pdf(ffFigFolder("heatmap2.pdf"), width=8, height=8)
+heatmap <- heatmap.2(DE_vsd, cexCol=1, labRow = FALSE, trace = 'none', col=viridis(20)[10:20])
+dev.off()
+```
+
+# Supplementary Tables
+```{r}
 mRNAs <- read_tsv(pipe(paste("grep", "mRNA", ffMappingsFolder("ms_ogs.gff"), "|", "cut", "-f", "9")), col_names = c("attributes"), comment="#")  %>%
   mutate(Name=str_extract(attributes, "(?<=Name=)[^;]+"), ID=str_extract(attributes, "(?<=ID=)[^;]+")) %>% select(-attributes)
-
 all_complete <- read_tsv(ffResultsFolder("tables", "Uninfectedvshog1.complete.txt")) %>% select(Id, Uninfectedvshog1_FC=log2FoldChange, Uninfectedvshog1_padj=padj) %>% full_join(read_tsv(ffResultsFolder("tables", "WTvshog1.complete.txt")) %>% select(Id, WTvshog1_FC=log2FoldChange, WTvshog1_padj=padj)) %>%
   full_join(read_tsv(ffResultsFolder("tables", "WTvsUninfected.complete.txt")) %>% select(Id, WTvsUninfected_FC=log2FoldChange, WTvsUninfected_padj=padj)) %>% filter(Uninfectedvshog1_padj<=0.1 | WTvshog1_padj<=0.1 | WTvsUninfected_padj <=0.1) 
-
 all_de <- mRNAs %>% right_join(all_complete, by=c("ID"="Id")) %>% select(-ID) %>%
   mutate(WTvshog1_padj=ifelse(WTvshog1_padj<.1, WTvshog1_padj, NA_character_),
          Uninfectedvshog1_padj=ifelse(Uninfectedvshog1_padj<.1, Uninfectedvshog1_padj, NA_character_),
          WTvsUninfected_padj=ifelse(WTvsUninfected_padj<.1, WTvsUninfected_padj, NA_character_))
-
 all_de <- read_tsv(ffResultsFolder("tables", "WTvsUninfected.up.txt")) %>% bind_rows(read_tsv(ffResultsFolder("tables", "WTvsUninfected.down.txt")) ) %>%
   left_join(mRNAs, by=c("Id"="ID")) %>%
   select(Name, log2FoldChange, padj)
-
 all_de[heatmap$rowInd,]
 write_tsv(all_de[heatmap$rowInd,], ffFigFolder("all_de.tsv"), na="")
 ```
