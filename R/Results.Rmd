@@ -609,7 +609,7 @@ venn.diagram(Induced, file=ffFigFolder("Induced_unlabelled.png"), euler.d=TRUE, 
 
 # Supplementary Figures
 ## s1 - Weight gain at 25˚C  and 37˚C
-- growth is slightly slower at 37 deg (p=0.022)
+- growth is slower at 37 deg (40% per day vs. 56% per day; p<0.0001)
 
 ```{r Weight_25_30_37}
 colour1 <- calc_pal()(12)[1]
@@ -618,22 +618,31 @@ weight_25_versus_37C <- read_tsv(ffDataFolder("25_versus_37_weight.txt"))
 weight_25_versus_37C <- weight_25_versus_37C %>% 
     mutate(starting_weight=Day1) %>%
     gather('Day', 'Weight', starts_with('Day')) %>%
-  mutate(Animal=paste0(Temperature, Experimentalist, Animal),
+  mutate(Animal=paste0(Temperature, Experiment, Animal),
          Temperature=factor(Temperature),
          weight_change=(Weight-starting_weight)/starting_weight*100,
          Day=as.numeric(str_remove(Day, 'Day')))
-lm_fit <- lme(weight_change ~ Day + Day:Temperature, random=~1|Animal, data=weight_25_versus_37C, method='ML')
-lm_fit2 <- lme(weight_change ~ Day, random=~1|Animal, data=weight_25_versus_37C, method='ML')
+weight_25_versus_37C_R1 <- filter(weight_25_versus_37C, Experiment=='R1')
+lm_fit <- lme(weight_change ~ Day + Day:Temperature, random=~1|Animal, data=weight_25_versus_37C_R1, method='ML')
+lm_fit2 <- lme(weight_change ~ Day, random=~1|Animal, data=weight_25_versus_37C_R1, method='ML')
 anova(lm_fit, lm_fit2)
-(weight_25_versus_37C_plot <- weight_25_versus_37C %>%  ggplot(aes(x=as.numeric(str_remove(Day, 'Day')), y=weight_change, colour=Temperature)) +
-  geom_line(aes(group=Animal), alpha=1) +
+summary(lm_fit)
+(weight_25_versus_37C_plot <- weight_25_versus_37C_R1 %>%  ggplot(aes(x=as.numeric(str_remove(Day, 'Day')), y=weight_change, colour=Temperature)) +
+  geom_line(aes(group=Animal), alpha=.5) +
   ylab("% Weight Change") +
   xlab("Day") +
   guides(colour = guide_legend(override.aes = list(alpha = 1))) +
   scale_colour_manual(values=c(colour1, colour2)) +
-  facet_grid(~ Temperature) + 
+  facet_grid( ~ Temperature) + 
   my_theme)
 ggsave(ffPanelFolder("Fig.S1_weight_temperature.pdf"), plot=weight_25_versus_37C_plot, height=2.5, width=8, units="in")
+
+# growth is faster in R2 but still slower at 37 (108% per day vs 119%; p=3e-04)
+weight_25_versus_37C_R2 <- filter(weight_25_versus_37C, Experiment=='R2')
+lm_fit <- lme(weight_change ~ Day + Day:Temperature, random=~1|Animal, data=weight_25_versus_37C_R2, method='ML')
+lm_fit2 <- lme(weight_change ~ Day, random=~1|Animal, data=weight_25_versus_37C_R2, method='ML')
+anova(lm_fit, lm_fit2)
+summary(lm_fit)
 ```
 
 ## s2 - Heat-killed C. albicans at 37C
