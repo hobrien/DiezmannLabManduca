@@ -103,6 +103,17 @@ ggsave(ffPanelFolder("YSD89_survival_25C.pdf"), plot=YSD89_survival_25C_plot$plo
 data_t <- filter(drc_survival_25C, Strain == 'YSD85') %>% convert_srv_data()
 (YSD85_survival_25C_plot <- make_surv_plot(data_t, "SC5314"))
 ggsave(ffPanelFolder("YSD85_survival_25C.pdf"), plot=YSD85_survival_25C_plot$plot, height=2.5, width=4, units="in")
+
+# Excluding PBS
+# YSD89
+data_t <- filter(drc_survival_25C, Strain == 'YSD89' & Treatment != 'PBS') %>% convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+   # YSD85
+data_t <- filter(drc_survival_25C, Strain == 'YSD85' & Treatment != 'PBS') %>% convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 ```
 
 ## 1d - C. albicans mutants survival at 25C
@@ -119,19 +130,24 @@ make_surv_plot <- function(data_t) {
  colours <- c(calc_pal()(12)[1:3],calc_pal()(12)[5:7])
  draw_srv_plot(fit1, labels, title, colours, 2)
 }
-#mutant_survival_25C %>% count(Genotype)
+
 # ahr1
 data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') | 
                    str_detect(Genotype, 'ahr1')) %>% 
   mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>%
   convert_srv_data()
 (ahr1_survival_25C_plot <- make_surv_plot(data_t))
-   
+
 ggsave(ffPanelFolder("ahr1_survival_25C.pdf"), plot=ahr1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
-# pair-wise comparison with wild type to assess significance
-#data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'ahr1/ahr1::AHR1')) %>% 
-#  convert_srv_data()
-#(ahr1_survival_25C_plot <- make_surv_plot(data_t))
+
+# exclude PBS  
+data_t <- filter(mutant_survival_25C , Genotype %in% c('WT') | 
+                   str_detect(Genotype, 'ahr1')) %>% 
+  mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Genotype, data = data_t)
+
 # cka2
 data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') | 
                    str_detect(Genotype, 'cka2')) %>% 
@@ -139,9 +155,15 @@ data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') |
 (cka2_survival_25C_plot <- make_surv_plot(data_t))
    
 ggsave(ffPanelFolder("cka2_survival_25C.pdf"), plot=cka2_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
-#pair-wise comparison with wild type to assess significance
-#data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'cka2/cka2')) %>% #convert_srv_data()
-#(cka2_survival_25C_plot <- make_surv_plot(data_t))
+
+# exclude PBS  
+data_t <- filter(mutant_survival_25C , Genotype %in% c('WT') | 
+                   str_detect(Genotype, 'cka2')) %>% 
+  mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Genotype, data = data_t)
+
 # hog1
 data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') | 
                    str_detect(Genotype, 'hog1')) %>% 
@@ -149,9 +171,15 @@ data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'PBS') |
 (hog1_survival_25C_plot <- make_surv_plot(data_t))
    
 ggsave(ffPanelFolder("hog1_survival_25C.pdf"), plot=hog1_survival_25C_plot$plot, height=2.5, width=2.5, units="in")
-#pair-wise comparison with wild type to assess significance
-#data_t <- filter(mutant_survival_25C , Genotype %in% c('WT', 'hog1/hog1::HOG1')) %>% #convert_srv_data()
-#(hog1_survival_25C_plot <- make_surv_plot(data_t))
+
+# exclude PBS  
+data_t <- filter(mutant_survival_25C , Genotype %in% c('WT') | 
+                   str_detect(Genotype, 'hog1')) %>% 
+  mutate(Genotype=relevel(factor(Genotype), ref='WT')) %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Genotype, data = data_t)
+
 combined <- (YSD89_survival_25C_plot$plot | YSD85_survival_25C_plot$plot) / (hog1_survival_25C_plot$plot | cka2_survival_25C_plot$plot | ahr1_survival_25C_plot$plot )
 ggsave(ffPanelFolder("Fig.1_survival_25.pdf"), plot=combined, height=5, width=8, units="in")
 ```
@@ -193,11 +221,17 @@ make_surv_plot <- function(data_t, my_title) {
 }
 data_t <- drc_survival_weight_37C %>% 
   filter(Category == 'Survival') %>% 
-#  mutate(Genotype=ifelse(is.na(Genotype), "PBS", Treatment),
-#         Genotype=relevel(factor(Genotype), ref='WT')) %>%
   convert_srv_data()
 (drc_survival_37C <- make_surv_plot(data_t, "SC5314"))
 ggsave(ffFigFolder("drc_survival_weight_37C.pdf"), plot=drc_survival_37C$plot, height=2.5, width=4, units="in")
+
+# exclude PBS 
+data_t <- drc_survival_weight_37C %>% 
+  filter(Category == 'Survival' & Treatment != 'PBS') %>% 
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 drc_weight_37C <- drc_weight_37C %>% mutate(Treatment=relevel(factor(Treatment), ref='PBS'))
 mod_37 <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_37C,  Day < 4 & !is.na(Weight)))
 summary(mod_37)
@@ -244,6 +278,12 @@ data_t <- hog1_weight_survival_37C %>%
 ggsave(ffPanelFolder("hog1_survival_37C.pdf"), plot=hog1_survival_plot$plot, height=2.5, width=4, units="in")
 combined2 <- drc_survival_37C$plot + drc_weight_37C_plot + hog1_survival_plot$plot + hog1_weight_37C_plot + plot_layout(ncol = 2, heights = c(2, 2))
 ggsave(ffPanelFolder("Fig.2_survival_37.pdf"), plot=combined2, height=7, width=8, units="in")
+
+# exclude PBS 
+data_t <- filter(data_t, Genotype != 'PBS')
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Genotype, data = data_t)
+
 hog1_weight_37C <- hog1_weight_37C %>% mutate(Genotype=relevel(factor(Genotype), ref='WT'))
 mod_hog1 <- lme(Weight ~ Day + Genotype:Day, random= ~1|rowname, data=filter(hog1_weight_37C,  Day < 4 & !is.na(Weight)))
 summary(mod_hog1)
@@ -258,7 +298,6 @@ fungal_burden_feces <-read_tsv(ffDataFolder("fungal_burden_feces.txt"))
 (feces_plot <- fungal_burden_feces %>% 
   group_by(Pot, Treatment, Day) %>%
   summarise(CFU=mean(`CFU/g feces`)) %>%
-  #rename(CFU=`CFU/g feces`) %>%
   ungroup() %>%
   mutate(Treatment=factor(Treatment, levels=c("YSD883", "YSD89", "PBS"))) %>%
   mutate(CFU=ifelse(CFU>0, CFU, 1)) %>%
@@ -272,7 +311,6 @@ fungal_burden_feces <-read_tsv(ffDataFolder("fungal_burden_feces.txt"))
     theme(legend.position = 'none',
           axis.title.x=element_blank(),
           strip.text.x=element_text(size=8, colour=color.axis.title)) +
-    #xlab('Day') +
     ylab('CFU/g feces'))
 ```
 
@@ -296,7 +334,6 @@ fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
     my_theme +
     theme(legend.position = 'none',
           axis.title.x=element_blank()) +
-    #xlab('Day') +
     ylab('CFU/100 ul hemolymph'))
 ```
 
@@ -305,18 +342,22 @@ fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
 ```{r fungal_burden_weight}
 fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
 (weight_plot <- fungal_burden_weight %>% 
- gather('Day', 'Weight', starts_with('Day')) %>% #View()
+  mutate(starting_weight=Day1) %>%
+  gather('Day', 'Weight', starts_with('Day')) %>% 
   mutate(Treatment=factor(Treatment, levels=c("YSD883", "YSD89", "PBS")),
-          Day=as.numeric(str_remove(Day, "Day"))) %>%
-  ggplot(aes(x=as.factor(Day), y=`Weight`, colour=factor(Pot), group=Pot)) +
+         Day=as.numeric(str_remove(Day, "Day")),
+         weight_change=(Weight-starting_weight)/starting_weight*100) %>%
+  ggplot(aes(x=as.factor(Day), y=weight_change, colour=factor(Pot), group=Pot)) +
     geom_point(size=.5) +
     geom_line(size=.25) +
     facet_grid(.~Treatment) +
-    scale_colour_manual(values=c(calc_pal()(12)[1:4],calc_pal()(12)[7])) +
+    scale_colour_manual(values=c(calc_pal()(12)[1:4],
+                                 calc_pal()(12)[7])) +
     my_theme +
     theme(legend.position = 'none') +
-    xlab('Day') )
-library(patchwork)
+    xlab('Day') +
+    ylab("% Weight Change") 
+)
 combined_plot <- feces_plot / lymph_plot / weight_plot
 ggsave(ffPanelFolder("Fig.3_fungal_burden.pdf"), plot=combined_plot, height=8, units="in")
 ```
@@ -345,15 +386,23 @@ data_t <- fluconazole_survival %>%
   convert_srv_data()
 (fluconazole_plot <- make_surv_plot(data_t, ""))
 
+data_t <- fluconazole_survival %>% filter(Treatment != 'PBS') %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg', 'PBS'))) %>%
+  convert_srv_data()
+
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # pair-wise comparison of survival relative to 0 Fluconazole
 concentrations <- c('1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg')
-plot_pair <- function(conc) {
+compair_pair <- function(conc) {
   data_t <- fluconazole_survival %>% 
     filter(Treatment %in% c('0 mg/kg', conc)) %>%
     convert_srv_data()
-  make_surv_plot(data_t, "")
+  survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
 }
-lapply(concentrations, plot_pair)
+lapply(concentrations, compair_pair)
 ```
 
 ## 4b - Fluconazole treatment and weight
@@ -398,15 +447,29 @@ make_surv_plot <- function(data_t, my_title) {
  draw_srv_plot(fit1, labels, title, colours, 2)
 }
 
+data_t <- caspofungin_survival %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '2 mg/kg', '4 mg/kg', 'PBS'))) %>%
+  convert_srv_data()
+(caspofungin_plot <- make_surv_plot(data_t, ""))
+
+# recalculate p-value, excluding PBS
+data_t <- caspofungin_survival %>% filter(Treatment != 'PBS') %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '2 mg/kg', '4 mg/kg'))) %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # pair-wise comparison of survival relative to 0 caspofungin
 concentrations <- c('1 mg/kg', '2 mg/kg', '4 mg/kg')
-plot_pair <- function(conc) {
+compair_pair <- function(conc) {
   data_t <- caspofungin_survival %>% 
     filter(Treatment %in% c('0 mg/kg', conc)) %>%
     convert_srv_data()
-  make_surv_plot(data_t, "")
+    survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 }
-lapply(concentrations, plot_pair)
+lapply(concentrations, compair_pair)
 
 ```
 ## 4d - Caspofungin treatment and weight
@@ -433,7 +496,9 @@ caspofungin_weight <- caspofungin_weight %>%
 caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='4 mg/kg'))
 mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight)))
 summary(mod_cas)
+```
 
+```{r}
 
 # Combine Figures
 data_t <- caspofungin_survival %>% convert_srv_data()
@@ -463,31 +528,73 @@ data_t <- filter(drc_survival_species, Species == 'Saccharomyces_cerevisiae') %>
 (drc_survival_sc_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
    
 ggsave(ffPanelFolder("drc_survival_sc.png"), plot=drc_survival_sc_plot$plot, bg="transparent")
+
+# recalculate p-value, excluding PBS
+data_t <- data_t %>% filter(Treatment != 'PBS') %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # Metschnikowia_pulcherrima
 data_t <- filter(drc_survival_species, Species == 'Metschnikowia_pulcherrima') %>% convert_srv_data()
 (drc_survival_mp_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[5])))
    
 ggsave(ffPanelFolder("drc_survival_mp.png"), plot=drc_survival_mp_plot$plot, bg="transparent")
+
+# recalculate p-value, excluding PBS
+data_t <- data_t %>% filter(Treatment != 'PBS') %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # Cryptococcus_neoformans
 data_t <- filter(drc_survival_species, Species == 'Cryptococcus_neoformans') %>% convert_srv_data()
 (drc_survival_cn_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
    
 ggsave(ffPanelFolder("drc_survival_cn.png"), plot=drc_survival_cn_plot$plot, bg="transparent")
+
+# recalculate p-value, excluding PBS
+data_t <- data_t %>% filter(Treatment != 'PBS') %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # Candida_glabrata 
 data_t <- filter(drc_survival_species, Species == 'Candida_glabrata') %>% convert_srv_data()
 (drc_survival_cg_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
    
 ggsave(ffPanelFolder("drc_survival_cg.png"), plot=drc_survival_cg_plot$plot, bg="transparent")
+
+# recalculate p-value, excluding PBS
+data_t <- data_t %>% filter(Treatment != 'PBS') %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # Candida_auris 
 data_t <- filter(drc_survival_species, Species == 'Candida_auris') %>% convert_srv_data()
 (drc_survival_cau_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])))
    
 ggsave(ffPanelFolder("drc_survival_cau.png"), plot=drc_survival_cau_plot$plot, bg="transparent")
+
+# recalculate p-value, excluding PBS
+data_t <- data_t %>% filter(Treatment != 'PBS') %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 # Candida_albicans
 data_t <- filter(drc_survival_species, Species == 'Candida_albicans') %>% convert_srv_data()
 (drc_survival_cab_plot <- make_surv_plot(data_t, c(calc_pal()(12)[1:3],calc_pal()(12)[7],calc_pal()(12)[5])))
    
 ggsave(ffPanelFolder("drc_survival_cab.png"), plot=drc_survival_cab_plot$plot, bg="transparent")
+
+# recalculate p-value, excluding PBS
+data_t <- data_t %>% filter(Treatment != 'PBS') %>%
+  convert_srv_data()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
 species_survival_combined <- (drc_survival_sc_plot$plot | drc_survival_mp_plot$plot) /
                     (drc_survival_cn_plot$plot | drc_survival_cg_plot$plot) /
                     (drc_survival_cau_plot$plot | drc_survival_cab_plot$plot) 
@@ -611,7 +718,7 @@ venn.diagram(Induced, file=ffFigFolder("Induced_unlabelled.png"), euler.d=TRUE, 
 ## s1 - Weight gain at 25˚C  and 37˚C
 - growth is slower at 37 deg (40% per day vs. 56% per day; p<0.0001)
 
-```{r Weight_25_30_37}
+```{r Weight_25_37}
 colour1 <- calc_pal()(12)[1]
 colour2 <- calc_pal()(12)[3]
 weight_25_versus_37C <- read_tsv(ffDataFolder("25_versus_37_weight.txt"))
