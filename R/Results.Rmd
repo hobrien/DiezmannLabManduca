@@ -631,22 +631,25 @@ drc_weight_species <- drc_weight_species %>%
   mutate(Species = relevel(factor(Species), ref='S. cerevisiae'),
          Treatment = relevel(factor(Treatment), ref='PBS'))
 # S. cerevisiae grows significantly slower at 10^6, 10^7 and 10^8
-mod_sc <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='S. cerevisiae' & Day<4 & !is.na(Weight)))
+mod_sc <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='S. cerevisiae' & Day<3 & !is.na(Weight)))
 summary(mod_sc)
 # C. albicans grows significantly slower at 10^5 and dies at higher concentrations
-mod_ca <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. albicans' & Day<4 & !is.na(Weight)))
+# Need to remove 10^8 because all animals are dead at Day1
+mod_ca <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. albicans' & Day<3 & !is.na(Weight) & Treatment != '10^8'))
 summary(mod_ca)
+
+
 # C. auris grows marginally slower at lower concentrations and significantly slower at 10^8 and 10^9
-mod_cau <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. auris' & Day<4 & !is.na(Weight)))
+mod_cau <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. auris' & Day<3 & !is.na(Weight)))
 summary(mod_cau)
 # C. glabrata grows marginally slower at lower concentrations and significantly slower at 10^7, 10^8 and 10^9
-mod_cg <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. glabrata' & Day<4 & !is.na(Weight)))
+mod_cg <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. glabrata' & Day<3 & !is.na(Weight)))
 summary(mod_cg)
 # C. neoformans grows significantly faster(!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
-mod_cn <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. neoformans' & Day<4 & !is.na(Weight)))
+mod_cn <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. neoformans' & Day<3 & !is.na(Weight)))
 summary(mod_cn)
 # C. neoformans grows significantly faster (hormesis!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
-mod_mp <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='M. pulcherrima' & Day<4 & !is.na(Weight)))
+mod_mp <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='M. pulcherrima' & Day<3 & !is.na(Weight)))
 summary(mod_mp)
 ```
 
