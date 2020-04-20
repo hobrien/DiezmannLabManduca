@@ -367,75 +367,7 @@ ggsave(ffPanelFolder("Fig.3_fungal_burden.pdf"), plot=combined_plot, height=8, u
 
 # Fig 4 - Treatment with antifungal drugs cures caterpillars from fungal disease
 
-## 4a - Fluconazole survival
-
-```{r fluconazole_survival}
-fluconazole_survival <-read_tsv(ffDataFolder("fluconazole_survival.txt"))
-
-make_surv_plot <- function(data_t, my_title) {
- surv_object <- Surv(time = data_t$futime, 
-                     event = data_t$fustat)
- fit1 <- survfit(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
- colours <- c(calc_pal()(12)[1:4],calc_pal()(12)[6:7],calc_pal()(12)[5])
- title <- "Treatment"
- labels <- str_remove(names(fit1$strata), 'Treatment=')
- draw_srv_plot(fit1, labels, title, colours, 2)
-}
-# YSD89
-data_t <- fluconazole_survival %>%
-  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg', 'PBS'))) %>%
-  convert_srv_data()
-(fluconazole_plot <- make_surv_plot(data_t, ""))
-
-data_t <- fluconazole_survival %>% filter(Treatment != 'PBS') %>%
-  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg', 'PBS'))) %>%
-  convert_srv_data()
-
-survdiff(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
-
-# pair-wise comparison of survival relative to 0 Fluconazole
-concentrations <- c('1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg')
-compair_pair <- function(conc) {
-  data_t <- fluconazole_survival %>% 
-    filter(Treatment %in% c('0 mg/kg', conc)) %>%
-    convert_srv_data()
-  survdiff(Surv(time = data_t$futime, 
-                     event = data_t$fustat) ~ Treatment, data = data_t)
-}
-lapply(concentrations, compair_pair)
-```
-
-## 4b - Fluconazole treatment and weight
-
-```{r fluconazole_weight}
-fluconazole_weight <-read_tsv(ffDataFolder("fluconazole_weight.txt"))
-fluconazole_weight <- fluconazole_weight %>%
-  convert_weight_data() %>%
-  mutate(Treatment=factor(Treatment, 
-                          levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg',
-                                   '16 mg/kg', '32 mg/kg', '64 mg/kg',
-                                   'PBS')))
-(fluconazole_weight_plot <- fluconazole_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
-    geom_line(size=.25, colour=calc_pal()(12)[1]) +
-    geom_point(size=.5, colour=calc_pal()(12)[1]) +
-    facet_grid(. ~ Treatment) +
-    my_theme +
-    theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
-    ylab("% Weight Change") +
-    scale_colour_manual(name="Fluconazole",
-                    values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
-    scale_x_continuous(breaks=c(0,1,2,3)))
-fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='64 mg/kg'))
-mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
-summary(mod_flu)
-
-mod_flu_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
-anova(mod_flu, mod_flu_null)
-```
-
-## 4c - Caspofungin survival
+## 4a - Caspofungin survival
 
 ```{r caspofungin_survival}
 caspofungin_survival <-read_tsv(ffDataFolder("caspofungin_survival.txt"))
@@ -475,7 +407,7 @@ compair_pair <- function(conc) {
 lapply(concentrations, compair_pair)
 
 ```
-## 4d - Caspofungin treatment and weight
+## 4b - Caspofungin treatment and weight
 
 ```{r caspofungin_weight}
 caspofungin_weight <-read_tsv(ffDataFolder("caspofungin_weight.txt"))
@@ -500,6 +432,74 @@ summary(mod_cas)
 mod_cas_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
 anova(mod_cas, mod_cas_null)
 
+```
+
+## 4c - Fluconazole survival
+
+```{r fluconazole_survival}
+fluconazole_survival <-read_tsv(ffDataFolder("fluconazole_survival.txt"))
+
+make_surv_plot <- function(data_t, my_title) {
+ surv_object <- Surv(time = data_t$futime, 
+                     event = data_t$fustat)
+ fit1 <- survfit(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+ colours <- c(calc_pal()(12)[1:4],calc_pal()(12)[6:7],calc_pal()(12)[5])
+ title <- "Treatment"
+ labels <- str_remove(names(fit1$strata), 'Treatment=')
+ draw_srv_plot(fit1, labels, title, colours, 2)
+}
+# YSD89
+data_t <- fluconazole_survival %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg', 'PBS'))) %>%
+  convert_srv_data()
+(fluconazole_plot <- make_surv_plot(data_t, ""))
+
+data_t <- fluconazole_survival %>% filter(Treatment != 'PBS') %>%
+  mutate(Treatment=factor(Treatment, levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg', 'PBS'))) %>%
+  convert_srv_data()
+
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
+# pair-wise comparison of survival relative to 0 Fluconazole
+concentrations <- c('1 mg/kg', '4 mg/kg', '16 mg/kg', '32 mg/kg', '64 mg/kg')
+compair_pair <- function(conc) {
+  data_t <- fluconazole_survival %>% 
+    filter(Treatment %in% c('0 mg/kg', conc)) %>%
+    convert_srv_data()
+  survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+}
+lapply(concentrations, compair_pair)
+```
+
+## 4d - Fluconazole treatment and weight
+
+```{r fluconazole_weight}
+fluconazole_weight <-read_tsv(ffDataFolder("fluconazole_weight.txt"))
+fluconazole_weight <- fluconazole_weight %>%
+  convert_weight_data() %>%
+  mutate(Treatment=factor(Treatment, 
+                          levels=c('0 mg/kg', '1 mg/kg', '4 mg/kg',
+                                   '16 mg/kg', '32 mg/kg', '64 mg/kg',
+                                   'PBS')))
+(fluconazole_weight_plot <- fluconazole_weight %>% ggplot(aes(x=Day, y=weight_change, group=Pot)) +
+    geom_line(size=.25, colour=calc_pal()(12)[1]) +
+    geom_point(size=.5, colour=calc_pal()(12)[1]) +
+    facet_grid(. ~ Treatment) +
+    my_theme +
+    theme(strip.text.x=element_text(size=6, colour=color.axis.title)) +
+    ylab("% Weight Change") +
+    scale_colour_manual(name="Fluconazole",
+                    values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
+    scale_x_continuous(breaks=c(0,1,2,3)))
+fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='64 mg/kg'))
+mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+summary(mod_flu)
+
+mod_flu_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+anova(mod_flu, mod_flu_null)
 ```
 
 ```{r}
@@ -624,15 +624,16 @@ drc_weight_species %>% ggplot(aes(x=Day, y=weight_change, colour=Treatment, grou
     ylab("% Weight Change") +
     scale_colour_manual(name="Cells per animal",
                     values=c(calc_pal()(12)[1:3],calc_pal()(12)[6:7],calc_pal()(12)[5])) +
-    #scale_y_continuous(limits=c(0,12)) +
     theme(strip.text.y=element_text(face="italic"))
 ggsave(ffPanelFolder("Fig.5b_drc_weight_species.pdf"), height=8, units="in")
 drc_weight_species <- drc_weight_species %>% 
   mutate(Species = relevel(factor(Species), ref='S. cerevisiae'),
          Treatment = relevel(factor(Treatment), ref='PBS'))
+
 # S. cerevisiae grows significantly slower at 10^6, 10^7 and 10^8
 mod_sc <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='S. cerevisiae' & Day<3 & !is.na(Weight)))
 summary(mod_sc)
+
 # C. albicans grows significantly slower at 10^5 and dies at higher concentrations
 # Need to remove 10^8 because all animals are dead at Day1
 mod_ca <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. albicans' & Day<3 & !is.na(Weight) & Treatment != '10^8'))
@@ -642,13 +643,15 @@ summary(mod_ca)
 # C. auris grows marginally slower at lower concentrations and significantly slower at 10^8 and 10^9
 mod_cau <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. auris' & Day<3 & !is.na(Weight)))
 summary(mod_cau)
+
 # C. glabrata grows marginally slower at lower concentrations and significantly slower at 10^7, 10^8 and 10^9
 mod_cg <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. glabrata' & Day<3 & !is.na(Weight)))
 summary(mod_cg)
-# C. neoformans grows significantly faster(!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
+
+# C. neoformans grows significantly faster(hormesis!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
 mod_cn <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. neoformans' & Day<3 & !is.na(Weight)))
 summary(mod_cn)
-# C. neoformans grows significantly faster (hormesis!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
+
 mod_mp <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='M. pulcherrima' & Day<3 & !is.na(Weight)))
 summary(mod_mp)
 ```
@@ -846,7 +849,7 @@ DE <- read_tsv(ffResultsFolder("tables", "WTvsUninfected.up.txt")) %>% select(Id
 DE[is.na(DE)]<-0
 
 DE_vsd <- assay(vsd)[DE$Id,LibraryInfo[LibraryInfo$condition != 'hog1',]$SampleID]
-#colnames(DE_vsd) <- LibraryInfo[match(colnames(DE_vsd), LibraryInfo$SampleID),]$condition
+
 pdf(ffFigFolder("heatmap2.pdf"), width=8, height=8)
 heatmap <- heatmap.2(DE_vsd, cexCol=1, labRow = FALSE, trace = 'none', col=viridis(20)[10:20])
 dev.off()
