@@ -428,8 +428,11 @@ fluconazole_weight <- fluconazole_weight %>%
                     values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
     scale_x_continuous(breaks=c(1,2,3,4)))
 fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='64 mg/kg'))
-mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight)))
+mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
 summary(mod_flu)
+
+mod_flu_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+anova(mod_flu, mod_flu_null)
 ```
 
 ## 4c - Caspofungin survival
@@ -494,8 +497,12 @@ caspofungin_weight <- caspofungin_weight %>%
                     values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
     scale_x_continuous(breaks=c(1,2,3,4)))
 caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='4 mg/kg'))
-mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight)))
+mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
 summary(mod_cas)
+
+mod_cas_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+anova(mod_cas, mod_cas_null)
+
 ```
 
 ```{r}
