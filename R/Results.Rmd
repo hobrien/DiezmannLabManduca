@@ -241,7 +241,9 @@ survdiff(Surv(time = data_t$futime,
                      event = data_t$fustat) ~ Treatment, data = data_t)
 
 drc_weight_37C <- drc_weight_37C %>% mutate(Treatment=relevel(factor(Treatment), ref='PBS'))
-mod_37 <- lme(Weight ~ Day + Treatment:Day, random= ~1|rowname, data=filter(drc_weight_37C,  Day < 4 & !is.na(Weight)))
+mod_37 <- lme(weight_change ~ Day + Treatment:Day, random= ~1|rowname,
+              data=filter(drc_weight_37C,  !is.na(Weight)),
+              method="ML")
 summary(mod_37)
 ```
 
@@ -289,7 +291,9 @@ survdiff(Surv(time = data_t$futime,
                      event = data_t$fustat) ~ Genotype, data = data_t)
 
 hog1_weight_37C <- hog1_weight_37C %>% mutate(Genotype=relevel(factor(Genotype), ref='WT'))
-mod_hog1 <- lme(Weight ~ Day + Genotype:Day, random= ~1|rowname, data=filter(hog1_weight_37C,  Day < 4 & !is.na(Weight)))
+mod_hog1 <- lme(weight_change ~ Day + Genotype:Day, random= ~1|rowname,
+                data=filter(hog1_weight_37C, Day<2 & !is.na(Weight)),
+                method='ML')
 summary(mod_hog1)
 ```
 
@@ -303,11 +307,11 @@ fungal_burden_feces <-read_tsv(ffDataFolder("fungal_burden_feces.txt"))
   group_by(Pot, Treatment, Day) %>%
   summarise(CFU=mean(`CFU/g feces`)) %>%
   ungroup() %>%
-  mutate(Treatment=factor(Treatment, levels=c("YSD883", "YSD89", "PBS"))) %>%
+  mutate(Treatment=factor(Treatment, levels=c("YSD89", "YSD883", "PBS"))) %>%
   mutate(CFU=ifelse(CFU>0, CFU, 1)) %>%
   ggplot(aes(x=as.factor(Day), y=`CFU`, colour=factor(Pot), group=Pot)) +
-    geom_point(size=.5) +
-    geom_line(size=.25) +
+    geom_point(size=1, shape=3, stroke=2) +
+    geom_line(size=.5) +
     facet_grid(.~Treatment) +
     scale_y_log10(limits=c(1e4, 1e10)) +
     scale_colour_manual(values=c(calc_pal()(12)[1:4],calc_pal()(12)[7])) +
@@ -328,10 +332,10 @@ fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
   summarise(CFU=mean(`CFU`)) %>%
   ungroup() %>%
   filter(CFU>0) %>%
-  mutate(Treatment=factor(Treatment, levels=c("YSD883", "YSD89", "PBS"))) %>%
+  mutate(Treatment=factor(Treatment, levels=c("YSD89", "YSD883", "PBS"))) %>%
   ggplot(aes(x=as.factor(Day), y=`CFU`, colour=factor(Pot), group=Pot)) +
-    geom_point(size=.5) +
-    geom_line(size=.25) +
+    geom_point(size=1, shape=3, stroke=2) +
+    geom_line(size=.5) +
     facet_grid(.~Treatment) +
     scale_y_log10() +
     scale_colour_manual(values=c(calc_pal()(12)[1:4],calc_pal()(12)[7])) +
@@ -348,10 +352,10 @@ fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
 (weight_plot <- fungal_burden_weight %>%
     convert_weight_data() %>%
   mutate(Treatment=factor(Treatment, 
-                          levels=c("YSD883", "YSD89", "PBS"))) %>%
+                          levels=c("YSD89", "YSD883", "PBS"))) %>%
   ggplot(aes(x=as.factor(Day), y=weight_change, colour=factor(Pot), group=Pot)) +
-    geom_point(size=.5) +
-    geom_line(size=.25) +
+    geom_point(size=1, shape=3, stroke=2) +
+    geom_line(size=.5) +
     facet_grid(.~Treatment) +
     scale_colour_manual(values=c(calc_pal()(12)[1:4],
                                  calc_pal()(12)[7])) +
@@ -425,11 +429,13 @@ caspofungin_weight <- caspofungin_weight %>%
     scale_colour_manual(name="Fluconazole",
                     values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
     scale_x_continuous(breaks=c(1,2,3,4)))
-caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='4 mg/kg'))
-mod_cas <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+caspofungin_weight <- caspofungin_weight %>% mutate(Treatment = relevel(Treatment, ref='PBS'))
+mod_cas <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 3 & !is.na(Weight)), method='ML')
 summary(mod_cas)
 
-mod_cas_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+mod_cas <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Pot, data=filter(caspofungin_weight,  Day < 3 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+
+mod_cas_null <- lme(weight_change ~ Day, random= ~1|Pot, data=filter(caspofungin_weight, Day < 3 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
 anova(mod_cas, mod_cas_null)
 
 ```
@@ -494,12 +500,15 @@ fluconazole_weight <- fluconazole_weight %>%
     scale_colour_manual(name="Fluconazole",
                     values=c(calc_pal()(12)[1:4],calc_pal()(12)[5:7])) +
     scale_x_continuous(breaks=c(0,1,2,3)))
-fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='64 mg/kg'))
-mod_flu <- lme(Weight ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+fluconazole_weight <- fluconazole_weight %>% mutate(Treatment = relevel(Treatment, ref='PBS'))
+mod_flu <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 3 & !is.na(Weight)), method='ML')
 summary(mod_flu)
 
-mod_flu_null <- lme(Weight ~ Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 4 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+mod_flu <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 3 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
+
+mod_flu_null <- lme(weight_change ~ Day, random= ~1|Pot, data=filter(fluconazole_weight, Day < 3 & !is.na(Weight) & Treatment != 'PBS'), method='ML')
 anova(mod_flu, mod_flu_null)
+
 ```
 
 ```{r}
@@ -636,23 +645,39 @@ summary(mod_sc)
 
 # C. albicans grows significantly slower at 10^5 and dies at higher concentrations
 # Need to remove 10^8 because all animals are dead at Day1
-mod_ca <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. albicans' & Day<3 & !is.na(Weight) & Treatment != '10^8'))
+mod_ca <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Animal,
+               data=filter(drc_weight_species, Species=='C. albicans'
+                            & !is.na(Weight)
+                            & Treatment != '10^8'),
+               method='ML')
 summary(mod_ca)
 
 
 # C. auris grows marginally slower at lower concentrations and significantly slower at 10^8 and 10^9
-mod_cau <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. auris' & Day<3 & !is.na(Weight)))
+mod_cau <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Animal,
+               data=filter(drc_weight_species, Species=='C. auris'
+                            & !is.na(Weight)),
+               method='ML')
 summary(mod_cau)
 
 # C. glabrata grows marginally slower at lower concentrations and significantly slower at 10^7, 10^8 and 10^9
-mod_cg <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. glabrata' & Day<3 & !is.na(Weight)))
+mod_cg <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Animal,
+               data=filter(drc_weight_species, Species=='C. glabrata'
+                            & !is.na(Weight)),
+               method='ML')
 summary(mod_cg)
 
 # C. neoformans grows significantly faster(hormesis!) at 10^5 but significantly slower at higher concentrations (at 10^5 it is also faster than any other species)
-mod_cn <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='C. neoformans' & Day<3 & !is.na(Weight)))
+mod_cn <- lme(weight_change ~ Day + Treatment:Day, random= ~1|Animal,
+               data=filter(drc_weight_species, Species=='C. neoformans'
+                            & !is.na(Weight)),
+               method='ML')
 summary(mod_cn)
 
-mod_mp <- lme(Weight ~ Day + Treatment:Day, random= ~1|Animal, data=filter(drc_weight_species, Species=='M. pulcherrima' & Day<3 & !is.na(Weight)))
+mod_mp <-lme(weight_change ~ Day + Treatment:Day, random= ~1|Animal,
+               data=filter(drc_weight_species, Species=='M. pulcherrima'
+                            & !is.na(Weight)),
+               method='ML') 
 summary(mod_mp)
 ```
 
