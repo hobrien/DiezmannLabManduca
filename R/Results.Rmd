@@ -345,30 +345,6 @@ fungal_burden_hemolymph <-read_tsv(ffDataFolder("fungal_burden_hemolymph.txt"))
     ylab('CFU/100 ul hemolymph'))
 ```
 
-## 3c - Fungal burden and caterpillar weight
-
-```{r fungal_burden_weight}
-fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
-(weight_plot <- fungal_burden_weight %>%
-    convert_weight_data() %>%
-  mutate(Treatment=factor(Treatment, 
-                          levels=c("YSD89", "YSD883", "PBS"))) %>%
-  ggplot(aes(x=as.factor(Day), y=weight_change, colour=factor(Pot), group=Pot)) +
-    geom_point(size=1, shape=3, stroke=2) +
-    geom_line(size=.5) +
-    facet_grid(.~Treatment) +
-    scale_colour_manual(values=c(calc_pal()(12)[1:4],
-                                 calc_pal()(12)[7])) +
-    my_theme +
-    theme(legend.position = 'none') +
-    xlab('Day') +
-    ylab("% Weight Change") 
-)
-combined_plot <- feces_plot / lymph_plot / weight_plot
-ggsave(ffPanelFolder("Fig.3_fungal_burden.pdf"), plot=combined_plot, height=8, units="in")
-```
-
-
 # Fig 4 - Treatment with antifungal drugs cures caterpillars from fungal disease
 
 ## 4a - Caspofungin survival
@@ -830,8 +806,30 @@ mod_hog1 <- lme(Weight ~ Day + Treatment:Day, random= ~1|rowname, data=filter(he
 summary(mod_hog1)
 ```
 
+## s3 - Fungal burden and caterpillar weight
 
-## s3 - RNAseq Library Size
+```{r fungal_burden_weight}
+fungal_burden_weight <-read_tsv(ffDataFolder("fungal_burden_weight.txt"))
+(weight_plot <- fungal_burden_weight %>%
+    convert_weight_data() %>%
+  mutate(Treatment=factor(Treatment, 
+                          levels=c("YSD89", "YSD883", "PBS"))) %>%
+  ggplot(aes(x=as.factor(Day), y=weight_change, colour=factor(Pot), group=Pot)) +
+    geom_point(size=1, shape=3, stroke=2) +
+    geom_line(size=.5) +
+    facet_grid(.~Treatment) +
+    scale_colour_manual(values=c(calc_pal()(12)[1:4],
+                                 calc_pal()(12)[7])) +
+    my_theme +
+    theme(legend.position = 'none') +
+    xlab('Day') +
+    ylab("% Weight Change") 
+)
+combined_plot <- feces_plot / lymph_plot / weight_plot
+ggsave(ffPanelFolder("Fig.s3_fungal_burden.pdf"), plot=combined_plot, height=8, units="in")
+```
+
+## s4 - RNAseq Library Size
 ```{r}
 cov <- data.frame()
 for (file in dir(ffMappingsFolder(), '*cov.txt')) {
@@ -864,7 +862,7 @@ cov %>% group_by(Organism, sample) %>%
 ggsave(ffFigFolder("chart1.pdf"))
 ```
 
-## s4 - Heatmap
+## s5 - Heatmap
 ```{r heatmap}
 vsd <- varianceStabilizingTransformation(out.DESeq2$dds, blind=FALSE)
 
