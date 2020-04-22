@@ -798,6 +798,15 @@ make_surv_plot <- function(data_t, my_title) {
 data_t <- heat_killed_survival %>%  convert_srv_data_2day()
 (heat_killed_survival_plot <- make_surv_plot(data_t, ""))
 ggsave(ffPanelFolder("heat_killed_survival_plot.pdf"), plot=heat_killed_survival_plot$plot, height=2.5, width=4, units="in")
+
+# exclude PBS 
+data_t <- heat_killed_survival %>% 
+  filter(Treatment != 'PBS') %>% 
+  convert_srv_data_2day()
+survdiff(Surv(time = data_t$futime, 
+                     event = data_t$fustat) ~ Treatment, data = data_t)
+
+
 combined3 <-  heat_killed_survival_plot$plot | heat_killed_weight_plot
 ggsave(ffPanelFolder("Fig.S2_heat_killed_combined.pdf"), plot=combined3, height=3, width=8, units="in")
 heat_killed_weight <- heat_killed_weight %>% mutate(Day = as.numeric(str_remove(Day, 'Day')),
