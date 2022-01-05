@@ -1,6 +1,6 @@
 # Tobacco Hornworm as a novel host model for the study of fungal virulence and drug efficacy
 
-- Scripts and Workflows used for the analyses in Lyons et al. 2019. The little caterpillar that could – Tobacco Hornworm (Manduca sexta) caterpillars as a novel host model for the study of fungal virulence and drug efficacy. [bioRxiv](https://www.biorxiv.org/content/10.1101/693226v1)
+- Scripts and Workflows used for the analyses in [Lyons N, I Softley, A Balfour, C Williamson, HE O'Brien, AC Shetty, VM Bruno and S Diezmann. 2020. Tobacco Hornworm (_Manduca sexta_) caterpillars as a novel host model for the study of fungal virulence and drug efficacy. Virulence 11(1): 1075-1089](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7549948/)
 
 - All R code can be found [here](https://github.com/hobrien/DiezmannLabManduca/blob/master/R/Results.Rmd)
 - [Snakemake](https://snakemake.readthedocs.io/en/stable/) workflow to run RNAseq analyses and R code can be found [here](https://github.com/hobrien/DiezmannLabManduca/blob/master/Snakefile)
